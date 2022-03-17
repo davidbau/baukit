@@ -636,7 +636,7 @@ class Range(Widget):
         # but this is pretty slow on google colab.
         return minify('''
           element.addEventListener('change', (e) => {
-            model.set('value', element.value);
+            model.set('value', parseFloat(element.value));
           });
           model.on('value', (e) => {
             if (!element.matches(':active')) {
