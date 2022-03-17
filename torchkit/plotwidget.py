@@ -1,8 +1,8 @@
-from .labwidget import ImageWidget, Property
+from .labwidget import Image, Property
 import matplotlib, matplotlib.pyplot
 import inspect
 
-class PlotWidget(ImageWidget):
+class PlotWidget(Image):
     """
     A widget to create interactive matplotlib plots by defining a simple function.
     Example of usage:

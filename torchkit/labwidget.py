@@ -43,6 +43,8 @@ DEALINGS IN THE SOFTWARE.
 
 """
 
+import base64
+import io
 import json
 import html
 import re
@@ -621,12 +623,13 @@ class Textbox(Widget):
 
 
 class Range(Widget):
-    def __init__(self, value=50, min=0, max=100, **kwargs):
+    def __init__(self, value=50, min=0, max=100, step=1, **kwargs):
         super().__init__(**kwargs)
         # databinding is defined using Property objects.
         self.value = Property(value)
         self.min = Property(min)
         self.max = Property(max)
+        self.step = Property(step)
 
     def widget_js(self):
         # Note that the 'input' event would enable during-drag feedback,
@@ -644,7 +647,7 @@ class Range(Widget):
 
     def widget_html(self):
         return f'''<input {self.std_attrs()} type="range" value="{
-            self.value}" min="{self.min}" max="{self.max}">'''
+            self.value}" min="{self.min}" max="{self.max}" step="{self.step}">'''
 
 
 class ColorPicker(Widget):
