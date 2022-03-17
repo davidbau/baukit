@@ -20,7 +20,7 @@ model and notify any registered python listeners.
 TODO: Support jupyterlab also.
 """
 
-import json, html, re
+import json, html, re, base64, io
 from inspect import signature
 
 class Model(object):
@@ -434,19 +434,20 @@ class Textbox(Widget):
         '''
 
 class Range(Widget):
-    def __init__(self, value=50, min=0, max=100):
+    def __init__(self, value=50, min=0, max=100, step=1.0):
         super().__init__()
         # databinding is defined using Property objects.
         self.value = Property(value)
         self.min = Property(min)
         self.max = Property(max)
+        self.step = Property(step)
 
     def widget_js(self):
         # Note that the 'input' event would enable during-drag feedback,
         # but this is pretty slow on google colab.
         return '''
           element.addEventListener('change', (e) => {
-            model.set('value', element.value);
+            model.set('value', +element.value);
           });
           model.on('value', (value) => {
             if (!element.matches(':active')) {
@@ -457,7 +458,7 @@ class Range(Widget):
     def widget_html(self):
         return f'''
           <input id="{self.view_id()}" type="range"
-             value="{self.value}" min="{self.min}" max="{self.max}">
+             value="{self.value}" min="{self.min}" max="{self.max}" step="{self.step}">
         '''
 
 class Choice(Widget):
@@ -570,6 +571,38 @@ class ClickDiv(Div):
             model.trigger('click', value);
           });
         '''
+
+EMPTY_IMAGE_URL = ('data:image/gif;base64,' +
+    'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==')
+
+class ImageWidget(Widget):
+    '''
+    An image widget; it simply renders its image URL property.
+    The render() method will save a PIL Image or a matplotlib Figure
+    as a URL and then update the image.
+    '''
+    def __init__(self, image=EMPTY_IMAGE_URL):
+        super().__init__()
+        self.image = Property(EMPTY_IMAGE_URL)
+    def widget_js(self):
+        return f'''
+            model.on('image', (v) => element.src = v);
+        '''
+    def widget_html(self):
+        v = self.view_id()
+        return f'''
+            <img id="{v}" src="{self.image}">
+        '''
+    def render(self, obj):
+        buf = io.BytesIO()
+        if hasattr(obj, 'save'): # Like a PIL.Image.Image
+            obj.save(buf, format='png')
+        elif hasattr(obj, 'savefig'): # Like a matplotlib.figure.Figure
+            obj.savefig(buf, format='png')
+        self.image = 'data:image/png;base64,' + (
+            base64.b64encode(buf.getvalue()).decode('utf-8'))
+        buf.close()
+
 
 ##########################################################################
 ## Implementation Details
