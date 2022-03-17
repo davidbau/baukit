@@ -1,37 +1,49 @@
-from .labwidget import Widget, Property
-import html
+from .labwidget import Widget, Property, minify
+
 
 class PaintWidget(Widget):
-  def __init__(self,
-          width=256, height=256,
-          image='', mask='', brushsize=10.0, oneshot=False, disabled=False):
-    super().__init__()
-    self.mask = Property(mask)
-    self.image = Property(image)
-    self.brushsize = Property(brushsize)
-    self.erase = Property(False)
-    self.oneshot = Property(oneshot)
-    self.disabled = Property(disabled)
-    self.width = Property(width)
-    self.height = Property(height)
+    def __init__(self,
+                 width=256, height=256,
+                 image='', mask='', brushsize=10.0, oneshot=False, disabled=False,
+                 vanishing=True, opacity=0.7, fillStyle='#fff',
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.mask = Property(mask)
+        self.image = Property(image)
+        self.vanishing = Property(vanishing)
+        self.brushsize = Property(brushsize)
+        self.erase = Property(False)
+        self.oneshot = Property(oneshot)
+        self.disabled = Property(disabled)
+        self.width = Property(width)
+        self.height = Property(height)
+        self.opacity = Property(opacity)
+        self.fillStyle = Property(fillStyle)
+        self.startpos = Property(None)
+        self.dragpos = Property(None)
+        self.dragging = Property(False)
 
-  def widget_js(self):
-    return f'''
+    def widget_js(self):
+        return minify(f'''
       {PAINT_WIDGET_JS}
       var pw = new PaintWidget(element, model);
-    '''
-  def widget_html(self):
-    v = self.view_id()
-    return f'''
+    ''')
+
+    def widget_html(self):
+        v = self.view_id()
+        return minify(f'''
     <style>
     #{v} {{ position: relative; display: inline-block; }}
     #{v} .paintmask {{
       position: absolute; top:0; left: 0; z-index: 1;
+      opacity: { self.opacity } }}
+    #{v} .paintmask.vanishing {{
       opacity: 0; transition: opacity .1s ease-in-out; }}
-    #{v} .paintmask:hover {{ opacity: 0.7; }}
+    #{v} .paintmask.vanishing:hover {{ opacity: { self.opacity }; }}
     </style>
     <div id="{v}"></div>
-    '''
+    ''')
+
 
 PAINT_WIDGET_JS = """
 class PaintWidget {
@@ -41,11 +53,20 @@ class PaintWidget {
     this.size_changed();
     this.model.on('mask', this.mask_changed.bind(this));
     this.model.on('image', this.image_changed.bind(this));
+    this.model.on('vanishing', this.mask_changed.bind(this));
     this.model.on('width', this.size_changed.bind(this));
     this.model.on('height', this.size_changed.bind(this));
   }
   mouse_stroke(first_event) {
     var self = this;
+    if (first_event.which === 3 || first_event.button === 2) {
+        first_event.preventDefault();
+        self.mask_canvas.style.pointerEvents = 'none';
+        setTimeout(() => {
+            self.mask_canvas.style.pointerEvents = 'all';
+        }, 3000);
+        return;
+    }
     if (self.model.get('disabled')) { return; }
     if (self.model.get('oneshot')) {
         var canvas = self.mask_canvas;
@@ -58,6 +79,9 @@ class PaintWidget {
           window.removeEventListener('mousemove', track_mouse);
           window.removeEventListener('mouseup', track_mouse);
           window.removeEventListener('keydown', track_mouse, true);
+          if (self.model.get('dragging')) {
+            self.model.set('dragging', false);
+          }
           self.mask_changed();
         }
         return;
@@ -67,13 +91,19 @@ class PaintWidget {
         window.removeEventListener('mousemove', track_mouse);
         window.removeEventListener('mouseup', track_mouse);
         window.removeEventListener('keydown', track_mouse, true);
+        self.model.set('dragging', false);
         self.model.set('mask', self.mask_canvas.toDataURL());
         return;
       }
-      var p = self.cursor_position();
+      var p = self.cursor_position(evt);
+      var d = self.model.get('dragging');
+      var e = self.model.get('erase') ^ (evt.metaKey);
+      if (!d) { self.model.set('startpos', [p.x, p.y]); }
+      self.model.set('dragpos', [p.x, p.y]);
+      if (!d) { self.model.set('dragging', true); }
       self.fill_circle(p.x, p.y,
           self.model.get('brushsize'),
-          self.model.get('erase'));
+          e);
     }
     this.mask_canvas.focus();
     window.addEventListener('mousemove', track_mouse);
@@ -81,24 +111,25 @@ class PaintWidget {
     window.addEventListener('keydown', track_mouse, true);
     track_mouse(first_event);
   }
-  mask_changed(val) {
+  mask_changed() {
+    this.mask_canvas.classList.toggle("vanishing", this.model.get('vanishing'));
     this.draw_data_url(this.mask_canvas, this.model.get('mask'));
   }
   image_changed() {
-    this.draw_data_url(this.image_canvas, this.model.get('image'));
+    this.image.src = this.model.get('image');
   }
   size_changed() {
     this.mask_canvas = document.createElement('canvas');
-    this.image_canvas = document.createElement('canvas');
+    this.image = document.createElement('img');
     this.mask_canvas.className = "paintmask";
-    this.image_canvas.className = "paintimage";
+    this.image.className = "paintimage";
     for (var attr of ['width', 'height']) {
       this.mask_canvas[attr] = this.model.get(attr);
-      this.image_canvas[attr] = this.model.get(attr);
+      this.image[attr] = this.model.get(attr);
     }
 
     this.el.innerHTML = '';
-    this.el.appendChild(this.image_canvas);
+    this.el.appendChild(this.image);
     this.el.appendChild(this.mask_canvas);
     this.mask_canvas.addEventListener('mousedown',
         this.mouse_stroke.bind(this));
@@ -121,7 +152,8 @@ class PaintWidget {
     }
     ctx.globalCompositeOperation = (
         erase ? "destination-out" : 'source-over');
-    ctx.fillStyle = '#fff';
+    // ctx.fillStyle = '#fff';
+    ctx.fillStyle = 'rgb(230, 230, 64)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fill();
