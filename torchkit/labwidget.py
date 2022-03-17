@@ -434,19 +434,20 @@ class Textbox(Widget):
         '''
 
 class Range(Widget):
-    def __init__(self, value=50, min=0, max=100, step=1.0):
+    def __init__(self, value=50, min=0, max=100, step=1.0, changeevent='change'):
         super().__init__()
         # databinding is defined using Property objects.
         self.value = Property(value)
         self.min = Property(min)
         self.max = Property(max)
         self.step = Property(step)
+        self.changeevent = Property(changeevent)
 
     def widget_js(self):
         # Note that the 'input' event would enable during-drag feedback,
         # but this is pretty slow on google colab.
         return '''
-          element.addEventListener('change', (e) => {
+          element.addEventListener(model.get('changeevent'), (e) => {
             model.set('value', +element.value);
           });
           model.on('value', (value) => {
