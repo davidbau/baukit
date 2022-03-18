@@ -635,6 +635,9 @@ class Range(Widget):
         # Note that the 'input' event would enable during-drag feedback,
         # but this is pretty slow on google colab.
         return minify('''
+          element.addEventListener('input', (e) => {
+            model.debounce('value', parseFloat(element.value));
+          });
           element.addEventListener('change', (e) => {
             model.set('value', parseFloat(element.value));
           });
@@ -1075,12 +1078,21 @@ class Model {
   constructor(obj_id, init) {
     this._id = obj_id;
     this._listeners = {};
-    this._data = Object.assign({}, init)
+    this._data = Object.assign({}, init);
+    this._sent = {};
     recvFromPython(this._id, (name, value) => {
       this._data[name] = value;
       var e = new Event(name); e.value = value;
       if (this._listeners.hasOwnProperty(name)) {
         this._listeners[name].forEach((fn) => { fn(e); });
+      }
+      if (this._sent[name]) {
+        value = this._sent[name];
+        delete this._sent[name];
+        if (value.length) {
+          value = value[0];
+          this.debounce(name, value);
+        }
       }
     })
   }
@@ -1092,6 +1104,14 @@ class Model {
   }
   set(name, value) {
     this.trigger(name, value);
+  }
+  debounce(name, value) {
+    if (!this._sent.hasOwnProperty(name)) {
+      this._sent[name] = [];
+      this.trigger(name, value);
+    } else {
+      this._sent[name] = [value];
+    }
   }
   on(name, fn) {
     name.split(/\s+/).forEach((n) => {
