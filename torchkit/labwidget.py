@@ -981,7 +981,7 @@ class Image(Widget):
         if hasattr(obj, 'save'): # Like a PIL.Image.Image
             obj.save(buf, format='png')
         elif hasattr(obj, 'savefig'): # Like a matplotlib.figure.Figure
-            obj.savefig(buf, format='png')
+            obj.savefig(buf, format='png', bbox_inches='tight')
         self.src= 'data:image/png;base64,' + (
             base64.b64encode(buf.getvalue()).decode('utf-8'))
         buf.close()
