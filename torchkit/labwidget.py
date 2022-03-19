@@ -622,6 +622,45 @@ class Textbox(Widget):
         return html_str
 
 
+class Numberbox(Widget):
+    def __init__(self, value='', size=20, style=None, desc=None, **kwargs):
+        super().__init__(style=defaulted(style, display='inline-block'), **kwargs)
+        # databinding is defined using Property objects.
+        self.value = Property(value)
+        self.size = Property(size)
+        self.desc = Property(desc)
+
+    def widget_js(self):
+        # Both "model" and "element" objects are defined within the scope
+        # where the js is run.    "element" looks for the element with id
+        # self.view_id(); if widget_html is overridden, this id should be used.
+        return minify('''
+          element.value = model.get('value');
+          element.size = model.get('size');
+          element.addEventListener('keydown', (e) => {
+            if (e.code == 'Enter') {
+              model.set('value', parseFloat(element.value));
+            }
+          });
+          element.addEventListener('blur', (e) => {
+            model.set('value', parseFloat(element.value));
+          });
+          model.on('value', (ev) => {
+            element.value = model.get('value');
+          });
+          model.on('size', (ev) => {
+            element.size = model.get('size');
+          });
+        ''')
+
+    def widget_html(self):
+
+        html_str = f'''<input {self.std_attrs()} type="numeric" value="{
+            html.escape(str(self.value))}" size="{self.size}">'''
+        if self.desc is not None:
+            html_str = f"""<span>{self.desc}</span>{html_str}"""
+        return html_str
+
 class Range(Widget):
     def __init__(self, value=50, min=0, max=100, step=1, **kwargs):
         super().__init__(**kwargs)
@@ -636,7 +675,7 @@ class Range(Widget):
         # but this is pretty slow on google colab.
         return minify('''
           element.addEventListener('input', (e) => {
-            model.debounce('value', parseFloat(element.value));
+            model.set_soon('value', parseFloat(element.value));
           });
           element.addEventListener('change', (e) => {
             model.set('value', parseFloat(element.value));
@@ -1091,7 +1130,7 @@ class Model {
         delete this._sent[name];
         if (value.length) {
           value = value[0];
-          this.debounce(name, value);
+          this.set_soon(name, value);
         }
       }
     })
@@ -1103,9 +1142,10 @@ class Model {
     return this._data[name];
   }
   set(name, value) {
+    delete this._sent[name];
     this.trigger(name, value);
   }
-  debounce(name, value) {
+  set_soon(name, value) {
     if (!this._sent.hasOwnProperty(name)) {
       this._sent[name] = [];
       this.trigger(name, value);
