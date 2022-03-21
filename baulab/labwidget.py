@@ -49,6 +49,7 @@ import json
 import html
 import re
 from inspect import signature
+from . import show
 
 
 class Model(object):
@@ -180,7 +181,7 @@ class Widget(Model):
     for the top-level widget element.
     '''
 
-    def __init__(self, style=None, data=None, className=None):
+    def __init__(self, style=None):
         # In the jupyter case, there can be some delay between js injection
         # and comm creation, so we need to queue some initial messages.
         if WIDGET_ENV == 'jupyter':
@@ -197,8 +198,6 @@ class Widget(Model):
         # The style and data properties come standard, and are used to
         # control the style and data attributes on the toplevel element.
         self.style = Property(style)
-        self.className = Property(className)
-        self.data = Property(data)
         # Each widget has a "write" event that is used to insert
         # html before the widget.
         self.write = Trigger()
@@ -217,7 +216,8 @@ class Widget(Model):
         Override to define the initial HTML view of the widget.  Should
         define an element with id given by view_id().
         '''
-        return f'<div {self.std_attrs()}></div>'
+        with show.enter_tag() as t:
+            return t.begin() + t.end()
 
     def view_id(self):
         '''
@@ -228,13 +228,9 @@ class Widget(Model):
 
     def std_attrs(self):
         '''
-        Returns id and (if applicable) style attributes, escaped and
-        formatted for use within the top-level element of widget HTML.
+        Returns id attribute, and possibly other standard attrs.
         '''
-        return (f'id="{self.view_id()}"' +
-                style_attr(self.style) +
-                class_attr(self.className) +
-                data_attrs(self.data))
+        return show.attr(id=self.view_id())
 
     def _repr_html_(self):
         '''
@@ -557,9 +553,8 @@ class Button(Widget):
         ''')
 
     def widget_html(self):
-        return f'''<input {self.std_attrs()} type="button" value="{
-            html.escape(str(self.label))}">'''
-
+        return show.emit_tag('input', self.std_attrs(),
+                    type='button', value=self.label)
 
 class Label(Widget):
     def __init__(self, value='', **kwargs):
@@ -578,17 +573,18 @@ class Label(Widget):
         ''')
 
     def widget_html(self):
-        return f'''<label {self.std_attrs()}>{
-            html.escape(str(self.value))}</label>'''
+        out = []
+        with show.enter_tag('label', self.std_attrs(), out=out):
+            out.append(html.escape(str(self.value)))
+        return ''.join(out)
 
 
 class Textbox(Widget):
-    def __init__(self, value='', size=20, style=None, desc=None, **kwargs):
+    def __init__(self, value='', size=20, style=None, **kwargs):
         super().__init__(style=defaulted(style, display='inline-block'), **kwargs)
         # databinding is defined using Property objects.
         self.value = Property(value)
         self.size = Property(size)
-        self.desc = Property(desc)
 
     def widget_js(self):
         # Both "model" and "element" objects are defined within the scope
@@ -614,21 +610,16 @@ class Textbox(Widget):
         ''')
 
     def widget_html(self):
-
-        html_str = f'''<input {self.std_attrs()} value="{
-            html.escape(str(self.value))}" size="{self.size}">'''
-        if self.desc is not None:
-            html_str = f"""<span>{self.desc}</span>{html_str}"""
-        return html_str
+        return show.emit_tag('input', self.std_attrs(),
+                    type='text', value=self.value, size=self.size)
 
 
 class Numberbox(Widget):
-    def __init__(self, value='', size=20, style=None, desc=None, **kwargs):
+    def __init__(self, value='', size=20, style=None, **kwargs):
         super().__init__(style=defaulted(style, display='inline-block'), **kwargs)
         # databinding is defined using Property objects.
         self.value = Property(value)
         self.size = Property(size)
-        self.desc = Property(desc)
 
     def widget_js(self):
         # Both "model" and "element" objects are defined within the scope
@@ -654,12 +645,8 @@ class Numberbox(Widget):
         ''')
 
     def widget_html(self):
-
-        html_str = f'''<input {self.std_attrs()} type="numeric" value="{
-            html.escape(str(self.value))}" size="{self.size}">'''
-        if self.desc is not None:
-            html_str = f"""<span>{self.desc}</span>{html_str}"""
-        return html_str
+        return show.emit_tag('input', self.std_attrs(),
+                    type='numeric', value=self.value, size=self.size)
 
 class Range(Widget):
     def __init__(self, value=50, min=0, max=100, step=1, **kwargs):
@@ -688,8 +675,9 @@ class Range(Widget):
         ''')
 
     def widget_html(self):
-        return f'''<input {self.std_attrs()} type="range" value="{
-            self.value}" min="{self.min}" max="{self.max}" step="{self.step}">'''
+        return show.emit_tag('input', self.std_attrs(),
+                    type='range', value=self.value,
+                    min=self.min, max=self.max, step=self.step)
 
 
 class ColorPicker(Widget):
@@ -714,11 +702,8 @@ class ColorPicker(Widget):
         ''')
 
     def widget_html(self):
-        html_str = f'''<input {self.std_attrs()} type="color" value="{
-            self.value}">'''
-        if self.desc is not None:
-            html_str = f"""<span>{self.desc}</span>{html_str}"""
-        return html_str
+        return show.emit_tag('input', self.std_attrs(),
+                    type='color', value=self.value)
 
 
 class Choice(Widget):
@@ -726,13 +711,12 @@ class Choice(Widget):
     A set of radio button choices.
     """
 
-    def __init__(self, choices=None, selection=None, horizontal=False,
+    def __init__(self, choices=None, selection=None,
                  **kwargs):
         super().__init__(**kwargs)
         if choices is None:
             choices = []
         self.choices = Property(choices)
-        self.horizontal = Property(horizontal)
         self.selection = Property(selection)
 
     def widget_js(self):
@@ -748,7 +732,7 @@ class Choice(Widget):
               return '<label><input type="radio" name="choice" value="' +
                  esc(c) + '">' + esc(c) + '</label>'
             });
-            element.innerHTML = lines.join(model.get('horizontal')?' ':'<br>');
+            element.innerHTML = lines.join();
           }
           model.on('choices horizontal', render);
           model.on('selection', (ev) => {
@@ -762,14 +746,14 @@ class Choice(Widget):
         ''')
 
     def widget_html(self):
-        radios = [
-            f"""<label><input name="choice" type="radio" {
-            'checked' if value == self.selection else ''
-            } value="{html.escape(value)}">{html.escape(value)}</label>"""
-            for value in self.choices]
-        sep = " " if self.horizontal else "<br>"
-        return f'<form {self.std_attrs()}>{sep.join(radios)}</form>'
-
+        out = []
+        with show.enter_tag('form', self.std_attrs(), out=out):
+            for value in self.choices:
+                with show.enter_tag('label', out=out):
+                    show.emit_tag('input',
+                        (show.attrs(checked=None) if value == self.selection else None),
+                        name='choice', type='radio', value=value, out=out)
+        return ''.join(out)
 
 class Menu(Widget):
     """
@@ -798,7 +782,6 @@ class Menu(Widget):
             });
             element.menu.innerHTML = lines.join('\\n');
           }
-          model.on('choices horizontal', render);
           model.on('selection', (ev) => {
             [...element.querySelectorAll('option')].forEach((e) => {
               e.selected = (e.value == ev.value);
@@ -810,14 +793,15 @@ class Menu(Widget):
         ''')
 
     def widget_html(self):
-        options = [
-            f"""<option value="{html.escape(str(value))}" {
-            'selected' if value == self.selection else ''
-            }>{html.escape(str(value))}</option>"""
-            for value in self.choices]
-        sep = "\n"
-        return f'''<form {self.std_attrs()}"><select name="menu">{
-             sep.join(options)}</select></form>'''
+        out = []
+        with show.enter_tag('form', self.std_attrs(), out=out):
+            with show.enter_tag(show.Tag('select', name='menu'), out=out):
+                for value in self.choices:
+                    with show.enter_tag(show.Tag('option',
+                            (show.attrs(selected=None) if value == self.selection else None),
+                            value=value, out=out)):
+                        out.append(html.escape(str(value)))
+        return ''.join(out)
 
 
 class Datalist(Widget):
@@ -877,15 +861,14 @@ class Datalist(Widget):
         ''')
 
     def widget_html(self):
-        options = [
-            f"""<option value="{html.escape(str(value))}">"""
-            for value in self.choices]
-        return ''.join([
-            f'<form {self.std_attrs()} onsubmit="return false;">',
-            f'<input name="inp" list="{self.datalist_id()}" autocomplete="off">',
-            f'<datalist id="{self.datalist_id()}">',
-            ''.join(options),
-            f'</datalist></form>'])
+        out = []
+        with show.enter_tag('form', self.std_attrs(),
+                onsubmit='return false;', out=out):
+            show.emit_tag('input', name='inp', list=self.datalist_id(),
+                    autocomplete='off', out=out)
+            with show.enter_tag(show.Tag('datalist'), id=self.datalist_id()):
+                for value in self.choices:
+                    show.emit_tag('option', value=str(value))
 
 
 class Div(Widget):
@@ -933,7 +916,10 @@ class Div(Widget):
         ''')
 
     def widget_html(self):
-        return f'''<div {self.std_attrs()}>{self.innerHTML}</div>'''
+        out = []
+        with emit.enter_tag(self.std_attrs(), out=out):
+            out.append(self.innerHTML);
+        return ''.join(out)
 
 
 class ClickDiv(Div):
@@ -995,7 +981,8 @@ class Image(Widget):
         ''')
 
     def widget_html(self):
-        return f'''<img {self.std_attrs()} src="{html.escape(self.src)}">'''
+        return show.emit_tag('img', self.std_attrs(), show.style(margin=0),
+                src=self.src)
 
 
 ##########################################################################

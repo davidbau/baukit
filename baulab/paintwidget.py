@@ -31,18 +31,18 @@ class PaintWidget(Widget):
 
     def widget_html(self):
         v = self.view_id()
-        return minify(f'''
-    <style>
-    #{v} {{ position: relative; display: inline-block; }}
-    #{v} .paintmask {{
-      position: absolute; top:0; left: 0; z-index: 1;
-      opacity: { self.opacity } }}
-    #{v} .paintmask.vanishing {{
-      opacity: 0; transition: opacity .1s ease-in-out; }}
-    #{v} .paintmask.vanishing:hover {{ opacity: { self.opacity }; }}
-    </style>
-    <div id="{v}"></div>
-    ''')
+        out = [minify(f'''
+            <style>
+            #{v} {{ position: relative; display: inline-block; }}
+            #{v} .paintmask {{
+              position: absolute; top:0; left: 0; z-index: 1;
+              opacity: { self.opacity } }}
+            #{v} .paintmask.vanishing {{
+              opacity: 0; transition: opacity .1s ease-in-out; }}
+            #{v} .paintmask.vanishing:hover {{ opacity: { self.opacity }; }}
+            </style>''')]
+        show.emit_tag(self.std_attrs(), out=out)
+        return ''.join(out)
 
 
 PAINT_WIDGET_JS = """

@@ -41,13 +41,13 @@ class PlotWidget(Image):
                 setattr(self, name, Property(default))
                 all_names.append(name)
 
-        old_backend = matplotlib.get_backend()
-        matplotlib.use('agg')
+        old_backend = matplotlib.pyplot.get_backend()
+        matplotlib.pyplot.switch_backend('agg')
         if 'mosaic' in init_args:
            self.fig, _ = matplotlib.pyplot.subplot_mosaic(**init_args)
         else:
            self.fig, _ = matplotlib.pyplot.subplots(**init_args)
-        matplotlib.use(old_backend)
+        matplotlib.pyplot.switch_backend(old_backend)
 
         def invoke_redraw():
             args = [self.fig]
