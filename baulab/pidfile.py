@@ -13,10 +13,24 @@ import sys
 
 def reserve_dir(*args):
     '''
-    Convenience function to get exclusive access to an unfinished
+    Convenience function to get exclusive access to a working
     experiment directory.  Exits the program if the directory is
-    already done or busy (using exit_of_job_done).  Otherwise,
+    already done or busy (using exit_if_job_done).  Otherwise,
     returns a function creates filenames within that directory.
+
+    Usage:
+
+    ```
+    # At the beginning of the program: exits right away if already done or being done.
+    rdir = reserve_dir(experiment_directory)
+
+    # In the middle of the program: write some files in the directory.
+    with open(rdir('my-results.txt'), 'w') as f:
+        f.write(mydata)
+
+    # At the end of the program, mark the directory as done.
+    rdir.done()
+    ```
     '''
     directory = os.path.join(*args)
     exit_if_job_done(directory)
@@ -36,7 +50,23 @@ def reserve_dir(*args):
 exclusive_dirfn = reserve_dir
 
 
+def mark_job_done(directory):
+    '''
+    Function to write a `done.txt` file into the given directory.
+    Accessible as rdir.done() for rdir returned from reserve_dir.
+    '''
+    with open(os.path.join(directory, 'done.txt'), 'w') as f:
+        f.write('done by %d@%s %s at %s' %
+                (os.getpid(), socket.gethostname(),
+                 os.getenv('STY', ''),
+                 time.strftime('%c')))
+
 def exit_if_job_done(directory, redo=False, force=False, verbose=True):
+    '''
+    Convenience function to get exclusive access to an unfinished
+    experiment directory.  Exits the program if the directory is
+    already done or busy (using exit_of_job_done).
+    '''
     if pidfile_taken(os.path.join(directory, 'lockfile.pid'),
                      force=force, verbose=verbose):
         sys.exit(0)
@@ -53,13 +83,6 @@ def exit_if_job_done(directory, redo=False, force=False, verbose=True):
                 print('%s %s' % (donefile, msg))
             sys.exit(0)
 
-
-def mark_job_done(directory):
-    with open(os.path.join(directory, 'done.txt'), 'w') as f:
-        f.write('done by %d@%s %s at %s' %
-                (os.getpid(), socket.gethostname(),
-                 os.getenv('STY', ''),
-                 time.strftime('%c')))
 
 
 def pidfile_taken(path, verbose=False, force=False):
