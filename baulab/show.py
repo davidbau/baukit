@@ -29,29 +29,29 @@ def show(*args):
 
 def html(*args):
     '''
-    Renders the arguments into an HtmlString without displaying directly.
+    Renders the arguments into an HtmlRepr without displaying directly.
     '''
     out = []
     with enter_tag(out=out):
         for x in args:
             render(x, out)
-    return HtmlString(''.join(out))
+    return HtmlRepr(''.join(out))
 
 def bare_html(*args):
     '''
-    Without an outermost element, renders the arguments as an HtmlString.
+    Without an outermost element, renders the arguments as an HtmlRepr.
     '''
     out = []
     for x in args:
         render(x, out)
-    return HtmlString(''.join(out))
+    return HtmlRepr(''.join(out))
 
 def raw_html(*args):
     '''
-    Produces an HtmlString from strings, without escaping or any fanciness.
+    Produces an HtmlRepr from strings, without escaping or any fanciness.
     '''
     out = []
-    return HtmlString(''.join(str(x) for x in args))
+    return HtmlRepr(''.join(str(x) for x in args))
 
 @contextmanager
 def enter_tag(*args, out=None, **kwargs):
@@ -340,63 +340,16 @@ RENDERING_RULES = [
 ]
 
 
-class HtmlString(str):
+class HtmlRepr:
     '''
     A string that contains HTML, and that returns itself as _repr_html_.
     It does no escaping, and just interprets strings as markup.
     '''
-    def __new__(cls, s):
-        return super().__new__(cls, s)
+    def __init__(self, html):
+        self.html = html
     def _repr_html_(self):
-        return self
-    def __add__(self, other):
-        return HtmlString(super().__add__(other))
-    def __mul__(self, other):
-        return HtmlString(super().__mul__(other))
-    def __rmul__(self, other):
-        return HtmlString(super().__rmul__(other))
-    def __mod__(self, other):
-        return HtmlString(super().__mod__(other))
-    def format(self, *args, **kwargs):
-        return HtmlString(super().format(*args, **kwargs))
-    def format_map(self, mapping):
-        return HtmlString(super().format_map(mapping))
-    def expandtabs(self, tabsize=8):
-        return HtmlString(super().expandtabs(tabsize=tabsize))
-    def join(self, iterable):
-        return HtmlString(super().join(iterable))
-    def ljust(self, width, fillchar=' '):
-        return HtmlString(super().ljust(width, fillchar=fillchar))
-    def lstrip(self, chars=None):
-        return HtmlString(super().lstrip(chars))
-    def removeprefix(self, prefix):
-        return HtmlString(super().removeprefix(prefix))
-    def removesuffix(self, suffix):
-        return HtmlString(super().removesuffix(suffix))
-    def replace(self, old, new, count=-1):
-        return HtmlString(super().replace(old, new, count=count))
-    def rjust(self, width, fillchar=' '):
-        return HtmlString(super().rjust(width, fillchar=fillchar))
-    def rstrip(self, chars=None):
-        return HtmlString(super().rstrip(chars))
-    def strip(self, chars=None):
-        return HtmlString(super().strip(chars))
-    def translate(self, table):
-        return HtmlString(super().translate(table))
-    def capitalize(self):
-        return HtmlString(super().capitalize())
-    def casefold(self):
-        return HtmlString(super().casefold())
-    def swapcase(self):
-        return HtmlString(super().swapcase())
-    def lower(self):
-        return HtmlString(super().lower())
-    def title(self):
-        return HtmlString(super().title())
-    def upper(self):
-        return HtmlString(super().upper())
-    def zfill(self, width):
-        return HtmlString(super().zfill(width))
+        return self.html
+
 
 class CallableModule(types.ModuleType):
     def __init__(self):
