@@ -1,12 +1,20 @@
 # show.py
 #
 # An abbreviated way to output simple HTML layout of text and images
-# into a python notebook.
+# into a python notebook.  You can call show(x, y, z) just like you
+# call display(x, y, z) in a notebook, but there are a few differences:
 #
-# - show a PIL image to show an inline HTML <img>.
-# - show an array of items to vertically stack them, centered in a block.
-# - show an array of arrays to horizontally lay them out as inline blocks.
-# - show an array of tuples to create a table.
+# (1) You can display PIL images and maplotlib figures, and they are
+#     represented as HTML images that can be seen.
+# (2) You can display lists of data, and nested lists, and they are
+#     displayed as layouts where the list elements are arranged either
+#     horizontally or vertically inside a flexbox layout, depending on
+#     the level of nesting. This is useful for creating layouts.
+# (3) You can construct HTML that can be customized by the caller.
+#     For example, showing the `style(width=50)` object will customize
+#     the next element shown to have CSS style `width:50px`.
+#     The HTML widget framework uses this facility, to provide
+#     interactive widgets that are easy to style.
 
 import PIL.Image
 import base64
