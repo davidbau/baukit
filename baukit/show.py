@@ -256,7 +256,10 @@ def render_html(obj, out):
     '''
     Use _repr_html_() when available and non-None.
     '''
-    h = obj._repr_html_()
+    try:
+        h = obj._repr_html_()
+    except:
+        return False
     if h is None:
         return False
     out.append(h)
