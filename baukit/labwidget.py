@@ -829,8 +829,8 @@ class Menu(Widget):
             with show.enter_tag(show.Tag('select', name='menu'), out=out):
                 for value in self.choices:
                     with show.enter_tag(show.Tag('option',
-                            (show.attrs(selected=None) if value == self.selection else None),
-                            value=value, out=out)):
+                            (show.attr(selected=None) if value == self.selection else None),
+                            value=value), out=out):
                         out.append(html.escape(str(value)))
         return ''.join(out)
 
