@@ -16,7 +16,6 @@
 #     The HTML widget framework uses this facility, to provide
 #     interactive widgets that are easy to style.
 
-import PIL.Image
 import base64
 import collections
 from contextlib import contextmanager
@@ -34,6 +33,14 @@ def show(*args):
     HTML-rendered arguments.
     '''
     display(html(*args))
+
+def bare(*args):
+    '''
+    show.bare renders HTML without an automatic top-level element, which makes
+    it possible to output bare HTML without an element at all. It also puts
+    the output of top-level under the control of the user.
+    '''
+    display(bare_html(*args))
 
 def html(*args):
     '''
@@ -319,6 +326,10 @@ def render_modifications(obj, out):
     assert isinstance(obj, (Tag, Attr, Style, ChildTag))
     modify_tag(obj)
 
+
+def class_name(x):
+    return x.__module__ + '.' + x.__name__
+
 def subclass_of(clsname):
     '''
     Detects if obj is a subclass of a class named clsname, without requiring import
@@ -326,7 +337,7 @@ def subclass_of(clsname):
     '''
     def test(obj):
         for x in inspect.getmro(type(obj)):
-            if clsname == x.__module__ + '.' + x.__name__:
+            if clsname == class_name(x):
                 return True
         return False
     return test
