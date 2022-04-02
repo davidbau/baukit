@@ -25,10 +25,12 @@ with Trace(net, 'layer.name') as ret:
 
 ## Widget library
 
-`show` is a vastly improved alternative to Jupyter notebook `display`;
+`show` is a feature-rich alternative to Jupyter notebook `display`;
 it allows for quickly producing HTML layouts by arranging data and
-images in nested python arrays.  And HTML elements, attributes, and
-CSS styles can be controlled with functions like `show.style(color='red')`.
+images in nested python arrays, and it knows how to directly display
+PIL images, matplotlib figure objects, and interactive widgets.
+HTML elements, attributes, and CSS styles can be controlled with
+functions like `show.style(color='red')`.
 
 ```
 from baukit import show
