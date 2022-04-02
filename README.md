@@ -55,7 +55,7 @@ def how_to_draw_my_plot(fig, amp=1.0, freq=1.0):
 						   
 plot = PlotWidget(how_to_draw_my_plot, figsize=(5, 5))
 ra = Range(min=0.0, max=2.0, step=0.1, value=plot.prop('amp'))
-rf = Range(min=0.1, max=20.0, step=0.1, value=plot.prop('freq')
+rf = Range(min=0.1, max=20.0, step=0.1, value=plot.prop('freq'))
 show([plot, [show.style(textAlign='right'), 'Amp', ra,
              show.style(textAlign='right'),  'Freq', rf]])
 ```
