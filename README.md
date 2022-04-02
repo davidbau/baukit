@@ -12,6 +12,9 @@ Includes:
  * Fast and feature-rich data set objects for images and text.
  * Utilities for simplifying the task of running many batch jobs.
 
+Full details can be found by reading the code.
+Here is a partial overview:
+
 ## Trace library
 
 `Trace`, `TraceDict`, `subsequence`, `replace_module`; these simplify
