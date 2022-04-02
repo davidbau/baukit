@@ -1,7 +1,9 @@
 # baukit
 
-A kit of David's secret tools to help with productive research prototyping
-with pytorch.
+Install using `pip install git+https://github.com/davidbau/baukit`.
+
+Provides the `baukit` package, a kit of David's secret tools to help
+with productive research prototyping with pytorch.
 
 Includes:
  * Methods for tracing and editing internal activations in a network.
