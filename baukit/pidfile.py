@@ -11,7 +11,7 @@ import time
 import sys
 
 
-def reserve_dir(*args):
+def reserve_dir(*args, exit=True):
     '''
     Convenience function to get exclusive access to a working
     experiment directory.  Exits the program if the directory is
@@ -33,7 +33,8 @@ def reserve_dir(*args):
     ```
     '''
     directory = os.path.join(*args)
-    exit_if_job_done(directory)
+    if not exit_if_job_done(directory, exit=exit):
+        return False
 
     def dirfn(*fn):
         return os.path.join(directory, *fn)
@@ -61,7 +62,8 @@ def mark_job_done(directory):
                  os.getenv('STY', ''),
                  time.strftime('%c')))
 
-def exit_if_job_done(directory, redo=False, force=False, verbose=True):
+def exit_if_job_done(directory, redo=False, force=False, verbose=True,
+        exit=True):
     '''
     Convenience function to get exclusive access to an unfinished
     experiment directory.  Exits the program if the directory is
@@ -69,7 +71,10 @@ def exit_if_job_done(directory, redo=False, force=False, verbose=True):
     '''
     if pidfile_taken(os.path.join(directory, 'lockfile.pid'),
                      force=force, verbose=verbose):
-        sys.exit(0)
+        if exit:
+            sys.exit(0)
+        else:
+            return False
     donefile = os.path.join(directory, 'done.txt')
     if os.path.isfile(donefile):
         with open(donefile) as f:
@@ -81,7 +86,11 @@ def exit_if_job_done(directory, redo=False, force=False, verbose=True):
         else:
             if verbose:
                 print('%s %s' % (donefile, msg))
-            sys.exit(0)
+            if exit:
+                sys.exit(0)
+            else:
+                return False
+    return True
 
 
 
