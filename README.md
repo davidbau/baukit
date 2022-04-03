@@ -83,7 +83,7 @@ cs = CombinedStat(
 )
 ds = MyDataset()
 # Loads from my_stats.npz if already computed.
-for [batch] in tally(stat, ds, cache='my_stats.npz', batch_size=50):
+for [batch] in tally(cs, ds, cache='my_stats.npz', batch_size=50):
     batch.cuda()
     # Assumes dim=0 is the sampling axis; stats are per dim=1 feature.
     stat.add(batch)
