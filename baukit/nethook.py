@@ -160,7 +160,7 @@ class TraceDict(OrderedDict, contextlib.AbstractContextManager):
                 if isinstance(obj, dict):
                     return obj.get(layer, None)
                 return obj
-                    
+
             self[layer] = Trace(
                 module=module,
                 layer=layer,
