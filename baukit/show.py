@@ -215,15 +215,26 @@ V = Tag(
         ChildTag(H))
 H.update(ChildTag(V))
 
+# Tables
 TD = Tag('td', ChildTag(H))
 TR = Tag('tr', ChildTag(TD))
 TABLE = Tag('table', ChildTag(TR))
 
+# Remove defaults
 PLAIN = Tag()
+
+# The INLINE style allows the content to provide the size, instead of
+# expanding to fill the available space.
 INLINE = Tag(
-        style(display='inline-flex', flexFlow='row wrap', gap='3px',
-            alignItems='center'),
-        ChildTag(V))
+        style(display='inline-flex', flex=None, flexFlow='column', gap='3px'),
+        ChildTag(H))
+
+# WRAP provides wrapping lines of INLINE boxes, akin to layout of text
+WRAP = Tag(
+        style(display='flex', flex='1', flexFlow='row wrap', gap='3px',
+            alignItems='start'),
+        ChildTag(INLINE))
+
 
 tag_stack = [V]
 tag_modifications = []
