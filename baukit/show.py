@@ -34,27 +34,9 @@ def show(*args):
     '''
     display(html(*args))
 
-def bare(*args):
-    '''
-    show.bare renders HTML without an automatic top-level element, which makes
-    it possible to output bare HTML without an element at all. It also puts
-    the output of top-level under the control of the user.
-    '''
-    display(bare_html(*args))
-
 def html(*args):
     '''
     Renders the arguments into an HtmlRepr without displaying directly.
-    '''
-    out = []
-    with enter_tag(out=out):
-        for x in args:
-            render(x, out)
-    return HtmlRepr(''.join(out))
-
-def bare_html(*args):
-    '''
-    Without an outermost element, renders the arguments as an HtmlRepr.
     '''
     out = []
     for x in args:
@@ -96,7 +78,7 @@ def enter_tag(*args, out=None, **kwargs):
     if len(tag_stack) and tag_stack[-1] is not None:
         default_tag = tag_stack[-1]
     else:
-        default_tag = HORIZONTAL
+        default_tag = H
     current_tag = default_tag(*args, **kwargs)
     current_tag.update(*tag_modifications)
     tag_modifications.clear()
@@ -219,22 +201,31 @@ class Tag:
     def __repr__(self):
         return str(self)
 
+def tag(*args, **kwargs):
+    return Tag(*args, **kwargs)
+
 
 # This is the default loop for nesting children: horizontal layout by default,
 # and then vertical layout for nested arrays; then horizontal within those, etc.
-HORIZONTAL = Tag(
+H = Tag(
         style(display='flex', flex='1', flexFlow='row wrap', gap='3px',
             alignItems='center'))
-VERTICAL = Tag(
+V = Tag(
         style(display='flex', flex='1', flexFlow='column', gap='3px'),
-        ChildTag(HORIZONTAL))
-HORIZONTAL.update(ChildTag(VERTICAL))
+        ChildTag(H))
+H.update(ChildTag(V))
+
+TD = Tag('td', ChildTag(H))
+TR = Tag('tr', ChildTag(TD))
+TABLE = Tag('table', ChildTag(TR))
+
+PLAIN = Tag()
 INLINE = Tag(
         style(display='inline-flex', flexFlow='row wrap', gap='3px',
             alignItems='center'),
-        ChildTag(VERTICAL))
+        ChildTag(V))
 
-tag_stack = [INLINE]
+tag_stack = [V]
 tag_modifications = []
 
 def modify_tag(*args):
@@ -283,13 +274,12 @@ def render_dict(obj, out):
     '''
     Dicts become tables.
     '''
-    with enter_tag('table', style(display=None, width='100%'), ChildTag(None), out=out):
+    with enter_tag(TABLE, out=out):
         for k, v in obj.items():
-            with enter_tag('tr', out=out):
-                out.append(row.begin())
-                with enter_tag('td', ChildTag(HORIZONTAL), out=out):
+            with enter_tag(out=out):
+                with enter_tag(out=out):
                     out.append(escape(str(k)))
-                with enter_tag('td', ChildTag(HORIZONTAL), out=out):
+                with enter_tag(out=out):
                     render(v, out)
 
 def render_image(obj, out):
