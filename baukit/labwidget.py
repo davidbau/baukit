@@ -48,6 +48,7 @@ import io
 import json
 import html
 import re
+import warnings
 from inspect import signature, getmro
 from . import show
 
@@ -293,6 +294,8 @@ class Widget(Model):
                     return
                 for comm in self._comms:
                     comm.send(args)
+            else:
+                no_env_warning()
 
     def _recv_from_js_(self, fn):
         if WIDGET_ENV == 'colab':
@@ -319,6 +322,8 @@ class Widget(Model):
                     handle_comm(open_msg)
             cname = "comm_" + str(id(self))
             COMM_MANAGER.register_target(cname, open_comm)
+        else:
+            no_env_warning()
 
     def display(self):
         from IPython.core.display import display
@@ -1100,8 +1105,9 @@ if WIDGET_ENV is None:
         WIDGET_ENV = 'jupyter'
     except Exception as e:
         pass
-if WIDGET_ENV is None:
-    print('Neither colab nor jupyter environment found.')
+
+def no_env_warning():
+    warnings.warn('Neither colab nor jupyter environment found.')
 
 SEND_RECV_JS = """
 function recvFromPython(obj_id, fn) {
