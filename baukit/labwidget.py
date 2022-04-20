@@ -993,13 +993,16 @@ class Image(Widget):
         """Clears the image."""
         self.src = ''
 
-    def render(self, obj):
+    def render(self, obj, **kwargs):
         buf = io.BytesIO()
+        if 'format' not in kwargs:
+            kwargs['format'] = 'png'
+        image_format = kwargs['format']
         if hasattr(obj, 'save'): # Like a PIL.Image.Image
-            obj.save(buf, format='png')
+            obj.save(buf, **kwargs)
         elif hasattr(obj, 'savefig'): # Like a matplotlib.figure.Figure
-            obj.savefig(buf, format='png', bbox_inches='tight')
-        self.src= 'data:image/png;base64,' + (
+            obj.savefig(buf, **kwargs)
+        self.src= f'data:image/{image_format};base64,' + (
             base64.b64encode(buf.getvalue()).decode('utf-8'))
         buf.close()
 

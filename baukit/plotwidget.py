@@ -27,6 +27,7 @@ class PlotWidget(Image):
     def __init__(self, redraw_rule, rc=None, **kwargs):
         super().__init__()
         init_args = dict(kwargs)
+        render_args = dict()
         self.rc = {} if rc is None else rc
         
         all_names = []
@@ -34,13 +35,18 @@ class PlotWidget(Image):
             if i == 0:
                 assert p.default == inspect._empty, 'First arg of redraw rule should be the figure'
             else:
-                if name in kwargs:
+                if name in init_args:
                     default = init_args.pop(name)
                 else:
                     assert p.default != inspect._empty, 'Arguments must have default values'
                     default = p.default
                 setattr(self, name, Property(default))
                 all_names.append(name)
+
+        for name in ['format', 'metadata', 'bbox_inches', 'pad_inches',
+                'facecolor', 'edgecolor', 'backend']:
+            if name in init_args:
+                render_args[name] = init_args.pop(name)
 
         with matplotlib.pyplot.rc_context(rc=self.rc):
             old_backend = matplotlib.pyplot.get_backend()
@@ -57,6 +63,6 @@ class PlotWidget(Image):
                 for name in all_names:
                     args.append(getattr(self, name))
                 redraw_rule(*args)
-                self.render(self.fig)
+                self.render(self.fig, **render_args)
         self.on(' '.join(all_names), invoke_redraw)
         invoke_redraw()
