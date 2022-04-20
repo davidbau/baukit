@@ -302,7 +302,7 @@ def render_image(obj, out):
         if hasattr(obj, 'save'): # Like a PIL.Image.Image
             obj.save(buf, format='png')
         elif hasattr(obj, 'savefig'): # Like a matplotlib.figure.Figure
-            obj.savefig(buf, format='png', bbox_inches='tight')
+            obj.savefig(buf, format='png')
         else:
             assert False
         src = 'data:image/png;base64,' + (
