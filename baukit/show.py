@@ -223,17 +223,17 @@ TABLE = Tag('table', ChildTag(TR))
 # Remove defaults
 PLAIN = Tag()
 
-# The INLINE style allows the content to provide the size, instead of
+# The TIGHT style allows the content to provide the size, instead of
 # expanding to fill the available space.
-INLINE = Tag(
+TIGHT = Tag(
         style(display='inline-flex', flex=None, flexFlow='column', gap='3px'),
         ChildTag(H))
 
-# WRAP provides wrapping lines of INLINE boxes, akin to layout of text
+# WRAP provides wrapping lines of TIGHT boxes, akin to layout of text
 WRAP = Tag(
         style(display='flex', flex='1', flexFlow='row wrap', gap='3px',
             alignItems='start'),
-        ChildTag(INLINE))
+        ChildTag(TIGHT))
 
 
 tag_stack = [V]
