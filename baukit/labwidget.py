@@ -1002,12 +1002,14 @@ class Image(Widget):
         buf = io.BytesIO()
         if 'format' not in kwargs:
             kwargs['format'] = 'png'
-        image_format = kwargs['format']
+        mime_format = kwargs['format'].lower()
+        mime_format = dict(jpg='jpeg', svg='svg+xml'
+                ).get(mime_format, mime_format)
         if hasattr(obj, 'save'): # Like a PIL.Image.Image
             obj.save(buf, **kwargs)
         elif hasattr(obj, 'savefig'): # Like a matplotlib.figure.Figure
             obj.savefig(buf, **kwargs)
-        self.src= f'data:image/{image_format};base64,' + (
+        self.src= f'data:image/{mime_format};base64,' + (
             base64.b64encode(buf.getvalue()).decode('utf-8'))
         buf.close()
 
