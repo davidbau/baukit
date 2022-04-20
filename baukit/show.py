@@ -327,6 +327,18 @@ def render_modifications(obj, out):
     assert isinstance(obj, (Tag, Attr, Style, ChildTag))
     modify_tag(obj)
 
+def render_pandas(obj, out):
+    '''
+    Allows control of Pandas outer-level table CSS and HTML attributes.
+    '''
+    with enter_tag(TABLE, style(display=None, flexFlow=None, gap=None, alignItems=None)) as t:
+        styler = obj.style
+        css = str(t.style)
+        if css:
+            styler.set_table_styles([dict(selector='', props=css)])
+        if t.attrs:
+            styler.set_table_attributes(t.attrs)
+        out.append(styler.render())
 
 def class_name(x):
     return x.__module__ + '.' + x.__name__
@@ -346,6 +358,8 @@ def subclass_of(clsname):
 RENDERING_RULES = [
         # Special tag modifications
         ((Style, Attr, Tag, ChildTag), render_modifications),
+        # Pandas dataframes even though they have a _repr_html_
+        (subclass_of('pandas.core.frame.DataFrame'), render_pandas),
         # Objects with an html repr
         ((lambda x: hasattr(x, '_repr_html_')), render_html),
         # Strings should not be treated as lists
