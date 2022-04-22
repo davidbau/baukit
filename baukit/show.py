@@ -32,16 +32,18 @@ def show(*args):
     The main function.  Calls the IPython display function to show the
     HTML-rendered arguments.
     '''
-    display(html(*args))
+    display(HtmlRepr(html(*args)))
 
 def html(*args):
     '''
-    Renders the arguments into an HtmlRepr without displaying directly.
+    Renders the arguments into an string without displaying directly.
     '''
+    tag_modifications.clear()
     out = []
     for x in args:
         render(x, out)
-    return HtmlRepr(''.join(out))
+    tag_modifications.clear()
+    return ''.join(out)
 
 def raw_html(*args):
     '''
@@ -111,10 +113,12 @@ HTML_EMPTY = set(('area base br col embed hr img input keygen '
 CSS_UNITS = dict([(k, unit) for keys, unit in [
   ('width height min-width max-width min-height max-height', 'px'),
   ('left right top bottom', 'px'),
-  ('font-size', 'px'),
+  ('font-size text-indent', 'px'),
+  ('gap column-gap row-gap', 'px'),
   ('border border-left border-right border-top border-bottom '
     'border-width border-left-width border-right-width '
     'border-top-width border-bottom-width', 'px'),
+  ('border-spacing letter-spacing word-spacing', 'px')
   ('margin margin-left margin-right margin-top margin-bottom', 'px'),
   ('padding padding-left padding-right padding-top padding-bottom', 'px'),
 ] for k in keys.split(' ')])
@@ -240,9 +244,15 @@ tag_stack = [V]
 tag_modifications = []
 
 def modify_tag(*args):
+    '''
+    Accumulates tag modifications to be applied to the next tag rendered.
+    '''
     tag_modifications.extend(args)
 
 def render(obj, out):
+    '''
+    The main rendering dispatch.
+    '''
     for detector, renderer in RENDERING_RULES:
         if (isinstance(obj, detector) if isinstance(detector, (type, tuple)) else detector(obj)):
             if renderer(obj, out) is not False:
@@ -267,6 +277,18 @@ def render_html(obj, out):
     '''
     try:
         h = obj._repr_html_()
+    except:
+        return False
+    if h is None:
+        return False
+    out.append(h)
+
+def render_mimebundle(obj, out):
+    '''
+    Use _repr_mimebundle_() when available and if it contains text/html.
+    '''
+    try:
+        h = obj._repr_mimebundle_(include=['text/html'])['text/html']
     except:
         return False
     if h is None:
@@ -360,6 +382,8 @@ RENDERING_RULES = [
         ((Style, Attr, Tag, ChildTag), render_modifications),
         # Pandas dataframes even though they have a _repr_html_
         (subclass_of('pandas.core.frame.DataFrame'), render_pandas),
+        # Objects with an html repr
+        ((lambda x: hasattr(x, '_repr_mimebundle_')), render_mimebundle),
         # Objects with an html repr
         ((lambda x: hasattr(x, '_repr_html_')), render_html),
         # Strings should not be treated as lists
