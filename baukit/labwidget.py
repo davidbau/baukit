@@ -217,7 +217,7 @@ class Widget(Model):
         Override to define the initial HTML view of the widget.  Should
         define an element with id given by view_id().
         '''
-        with show.enter_tag() as t:
+        with show.enter() as t:
             return t.begin() + t.end()
 
     def view_id(self):
@@ -558,7 +558,7 @@ class Button(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('input', self.std_attrs(),
+        return show.emit('input', self.std_attrs(),
                     type='button', value=self.label)
 
 class Label(Widget):
@@ -579,7 +579,7 @@ class Label(Widget):
 
     def widget_html(self):
         out = []
-        with show.enter_tag('label', self.std_attrs(), out=out):
+        with show.enter('label', self.std_attrs(), out=out):
             out.append(html.escape(str(self.value)))
         return ''.join(out)
 
@@ -615,7 +615,7 @@ class Textbox(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('input', self.std_attrs(),
+        return show.emit('input', self.std_attrs(),
                     type='text', value=self.value, size=self.size)
 
 
@@ -650,7 +650,7 @@ class Numberbox(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('input', self.std_attrs(),
+        return show.emit('input', self.std_attrs(),
                     type='numeric', value=self.value, size=self.size)
 
 class Textarea(Widget):
@@ -680,7 +680,7 @@ class Textarea(Widget):
 
     def widget_html(self):
         out = []
-        with show.enter_tag('textarea', self.std_attrs(), out=out):
+        with show.enter('textarea', self.std_attrs(), out=out):
             out.append(html.escape(self.value))
         return ''.join(out)
 
@@ -711,7 +711,7 @@ class Range(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('input', self.std_attrs(),
+        return show.emit('input', self.std_attrs(),
                     type='range', value=self.value,
                     min=self.min, max=self.max, step=self.step)
 
@@ -738,7 +738,7 @@ class ColorPicker(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('input', self.std_attrs(),
+        return show.emit('input', self.std_attrs(),
                     type='color', value=self.value)
 
 
@@ -783,10 +783,10 @@ class Choice(Widget):
 
     def widget_html(self):
         out = []
-        with show.enter_tag('form', self.std_attrs(), out=out):
+        with show.enter('form', self.std_attrs(), out=out):
             for value in self.choices:
-                with show.enter_tag('label', out=out):
-                    show.emit_tag('input',
+                with show.enter('label', out=out):
+                    show.emit('input',
                         (show.attrs(checked=None) if value == self.selection else None),
                         name='choice', type='radio', value=value, out=out)
         return ''.join(out)
@@ -830,10 +830,10 @@ class Menu(Widget):
 
     def widget_html(self):
         out = []
-        with show.enter_tag('form', self.std_attrs(), out=out):
-            with show.enter_tag(show.Tag('select', name='menu'), out=out):
+        with show.enter('form', self.std_attrs(), out=out):
+            with show.enter(show.Tag('select', name='menu'), out=out):
                 for value in self.choices:
-                    with show.enter_tag(show.Tag('option',
+                    with show.enter(show.Tag('option',
                             (show.attr(selected=None) if value == self.selection else None),
                             value=value), out=out):
                         out.append(html.escape(str(value)))
@@ -898,13 +898,13 @@ class Datalist(Widget):
 
     def widget_html(self):
         out = []
-        with show.enter_tag('form', self.std_attrs(),
+        with show.enter('form', self.std_attrs(),
                 onsubmit='return false;', out=out):
-            show.emit_tag('input', name='inp', list=self.datalist_id(),
+            show.emit('input', name='inp', list=self.datalist_id(),
                     autocomplete='off', out=out)
-            with show.enter_tag(show.Tag('datalist'), id=self.datalist_id()):
+            with show.enter(show.Tag('datalist'), id=self.datalist_id()):
                 for value in self.choices:
-                    show.emit_tag('option', value=str(value))
+                    show.emit('option', value=str(value))
 
 
 class Div(Widget):
@@ -953,7 +953,7 @@ class Div(Widget):
 
     def widget_html(self):
         out = []
-        with emit.enter_tag(self.std_attrs(), out=out):
+        with show.enter(self.std_attrs(), out=out):
             out.append(self.innerHTML);
         return ''.join(out)
 
@@ -1022,7 +1022,7 @@ class Image(Widget):
         ''')
 
     def widget_html(self):
-        return show.emit_tag('img', self.std_attrs(), show.style(margin=0),
+        return show.emit('img', self.std_attrs(), show.style(margin=0),
                 src=self.src)
 
 
