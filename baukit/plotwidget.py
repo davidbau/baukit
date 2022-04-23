@@ -27,7 +27,7 @@ class PlotWidget(Image):
     def __init__(self, redraw_rule, rc=None, **kwargs):
         super().__init__()
         init_args = dict(kwargs)
-        render_args = dict()
+        render_args = dict(format='svg', figsize=(5, 3.5))
         self.rc = {} if rc is None else rc
         
         all_names = []
