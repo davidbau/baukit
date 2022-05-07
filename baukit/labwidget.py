@@ -747,13 +747,13 @@ class Choice(Widget):
     A set of radio button choices.
     """
 
-    def __init__(self, choices=None, selection=None,
+    def __init__(self, choices=None, value=None,
                  **kwargs):
         super().__init__(**kwargs)
         if choices is None:
             choices = []
         self.choices = Property(choices)
-        self.selection = Property(selection)
+        self.value = Property(value)
 
     def widget_js(self):
         # Note that the 'input' event would enable during-drag feedback,
@@ -771,13 +771,13 @@ class Choice(Widget):
             element.innerHTML = lines.join();
           }
           model.on('choices horizontal', render);
-          model.on('selection', (ev) => {
+          model.on('value', (ev) => {
             [...element.querySelectorAll('input')].forEach((e) => {
               e.checked = (e.value == ev.value);
             })
           });
           element.addEventListener('change', (e) => {
-            model.set('selection', element.choice.value);
+            model.set('value', element.choice.value);
           });
         ''')
 
@@ -786,9 +786,11 @@ class Choice(Widget):
         with show.enter('form', self.std_attrs(), out=out):
             for value in self.choices:
                 with show.enter('label', out=out):
-                    show.emit('input',
-                        (show.attrs(checked=None) if value == self.selection else None),
-                        name='choice', type='radio', value=value, out=out)
+                    show.emit(show.PLAIN('input',
+                        (show.attr(checked=None) if value == self.value else None),
+                        name='choice', type='radio', value=value), out=out)
+                    with show.enter('div', out=out):
+                        out.append(html.escape(str(value)))
         return ''.join(out)
 
 class Menu(Widget):
@@ -796,12 +798,12 @@ class Menu(Widget):
     A dropdown choice.
     """
 
-    def __init__(self, choices=None, selection=None, **kwargs):
+    def __init__(self, choices=None, value=None, **kwargs):
         super().__init__(**kwargs)
         if choices is None:
             choices = []
         self.choices = Property(choices)
-        self.selection = Property(selection)
+        self.value = Property(value)
 
     def widget_js(self):
         return minify('''
@@ -810,21 +812,21 @@ class Menu(Widget):
                    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
           }
           function render() {
-            var selection = model.get('selection');
+            var value = model.get('value');
             var lines = model.get('choices').map((c) => {
               return '<option value="' + esc(''+c) + '"' +
-                     (c == selection ? ' selected' : '') +
+                     (c == value ? ' selected' : '') +
                      '>' + esc(''+c) + '</option>';
             });
             element.menu.innerHTML = lines.join('\\n');
           }
-          model.on('selection', (ev) => {
+          model.on('value', (ev) => {
             [...element.querySelectorAll('option')].forEach((e) => {
               e.selected = (e.value == ev.value);
             })
           });
           element.addEventListener('change', (e) => {
-            model.set('selection', element.menu.value);
+            model.set('value', element.menu.value);
           });
         ''')
 
@@ -834,7 +836,7 @@ class Menu(Widget):
             with show.enter(show.Tag('select', name='menu'), out=out):
                 for value in self.choices:
                     with show.enter(show.Tag('option',
-                            (show.attr(selected=None) if value == self.selection else None),
+                            (show.attr(selected=None) if value == self.value else None),
                             value=value), out=out):
                         out.append(html.escape(str(value)))
         return ''.join(out)
@@ -900,11 +902,13 @@ class Datalist(Widget):
         out = []
         with show.enter('form', self.std_attrs(),
                 onsubmit='return false;', out=out):
-            show.emit('input', name='inp', list=self.datalist_id(),
-                    autocomplete='off', out=out)
-            with show.enter(show.Tag('datalist'), id=self.datalist_id()):
+            show.emit(show.PLAIN('input', name='inp', list=self.datalist_id(),
+                    value=self.value, autocomplete='off'), out=out)
+            with show.enter(show.PLAIN('datalist', show.style(display='none')),
+                    id=self.datalist_id(), out=out):
                 for value in self.choices:
-                    show.emit('option', value=str(value))
+                    show.emit('option', value=str(value), out=out)
+        return ''.join(out)
 
 
 class Div(Widget):

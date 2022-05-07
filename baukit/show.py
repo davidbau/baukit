@@ -237,7 +237,8 @@ TR = Tag('tr', ChildTag(TD))
 TABLE = Tag('table', ChildTag(TR))
 
 # Remove defaults
-PLAIN = Tag()
+PLAIN = Tag(style(display=None, flex=None, flexFlow=None, gap=None),
+        ChildTag(None))
 
 # The TIGHT style allows the content to provide the size, instead of
 # expanding to fill the available space.
