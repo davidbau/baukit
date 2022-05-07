@@ -346,7 +346,7 @@ def render_image(obj, out):
         buf.close()
     except:
         return False
-    emit('img', attr(src=src), style(flex='0'), out=out)
+    emit('img', attr(src=src), style(flex=0, margin=0), out=out)
 
 def render_pre(obj, out):
     '''
