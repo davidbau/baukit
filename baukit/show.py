@@ -20,7 +20,6 @@ import base64
 import collections
 from contextlib import contextmanager
 import io
-import IPython
 import types
 import re
 import sys

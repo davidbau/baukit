@@ -1,5 +1,4 @@
 from .labwidget import Image, Property
-import matplotlib, matplotlib.pyplot
 import inspect
 
 class PlotWidget(Image):
@@ -25,10 +24,12 @@ class PlotWidget(Image):
     plot with freq set to 3.
     """
     def __init__(self, redraw_rule, rc=None, **kwargs):
+        import matplotlib, matplotlib.pyplot
         super().__init__()
         init_args = dict(kwargs)
-        render_args = dict(format='svg', figsize=(5, 3.5))
-        self.rc = {} if rc is None else rc
+        render_args = dict(format='svg')
+        if rc is None:
+            rc = {}
         
         all_names = []
         for i, (name, p) in enumerate(inspect.signature(redraw_rule).parameters.items()):
@@ -48,7 +49,11 @@ class PlotWidget(Image):
             if name in init_args:
                 render_args[name] = init_args.pop(name)
 
-        with matplotlib.pyplot.rc_context(rc=self.rc):
+        for default_arg, default_value in [('figsize', (5, 3.5))]:
+            if default_arg not in init_args:
+                init_args[default_arg] = default_value
+
+        with matplotlib.pyplot.rc_context(rc=rc):
             old_backend = matplotlib.pyplot.get_backend()
             matplotlib.pyplot.switch_backend('agg')
             if 'mosaic' in init_args:
@@ -58,7 +63,7 @@ class PlotWidget(Image):
         matplotlib.pyplot.switch_backend(old_backend)
 
         def invoke_redraw():
-            with matplotlib.pyplot.rc_context(rc=self.rc):
+            with matplotlib.pyplot.rc_context(rc=rc):
                 args = [self.fig]
                 for name in all_names:
                     args.append(getattr(self, name))
