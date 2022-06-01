@@ -10,6 +10,7 @@ from .nethook import module_names, parameter_names
 from .nethook import subsequence, get_module, get_parameter, replace_module
 from .pidfile import reserve_dir
 from .parallelfolder import ParallelImageFolders
+from . import renormalize
 from .runningstats import Stat, Mean, Variance, Covariance, Bincount
 from .runningstats import CrossCovariance, IoU, CrossIoU, Quantile, TopK
 from .runningstats import Reservoir, History, CombinedStat

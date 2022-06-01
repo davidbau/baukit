@@ -1,15 +1,15 @@
-from .labwidget import Widget, Property, minify
+from .labwidget import Widget, Property, Image, minify
+from . import show
 
 
-class PaintWidget(Widget):
+class PaintWidget(Image):
     def __init__(self,
                  width=256, height=256,
-                 image='', mask='', brushsize=10.0, oneshot=False, disabled=False,
+                 src='', mask='', brushsize=10.0, oneshot=False, disabled=False,
                  vanishing=True, opacity=0.7, fillStyle='#fff',
                  **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(src=src, **kwargs)
         self.mask = Property(mask)
-        self.image = Property(image)
         self.vanishing = Property(vanishing)
         self.brushsize = Property(brushsize)
         self.erase = Property(False)
@@ -52,7 +52,7 @@ class PaintWidget {
     this.model = model;
     this.size_changed();
     this.model.on('mask', this.mask_changed.bind(this));
-    this.model.on('image', this.image_changed.bind(this));
+    this.model.on('src', this.image_changed.bind(this));
     this.model.on('vanishing', this.mask_changed.bind(this));
     this.model.on('width', this.size_changed.bind(this));
     this.model.on('height', this.size_changed.bind(this));
@@ -116,7 +116,7 @@ class PaintWidget {
     this.draw_data_url(this.mask_canvas, this.model.get('mask'));
   }
   image_changed() {
-    this.image.src = this.model.get('image');
+    this.image.src = this.model.get('src');
   }
   size_changed() {
     this.mask_canvas = document.createElement('canvas');
