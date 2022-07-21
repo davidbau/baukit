@@ -1,8 +1,8 @@
-from .labwidget import Widget, Property, Image, minify
+from .labwidget import Widget, Property, Img, minify
 from . import show
 
 
-class PaintWidget(Image):
+class PaintWidget(Img):
     def __init__(self,
                  width=256, height=256,
                  src='', mask='', brushsize=10.0, oneshot=False, disabled=False,

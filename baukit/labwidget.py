@@ -481,6 +481,9 @@ class Event(object):
         self.name = name
         self.target = target
 
+    def __repr__(self):
+        return f'Event({self.value}, {self.name})'
+
 
 entered_handler_stack = []
 
@@ -986,7 +989,7 @@ class ClickDiv(Div):
         ''')
 
 
-class Image(Widget):
+class Img(Widget):
     """
     Just a IMG element.  Use the src property to change its contents by url,
     or use the clear() and render(imgdata) methods to convert PIL or
@@ -995,7 +998,11 @@ class Image(Widget):
 
     def __init__(self, src='', style=None, **kwargs):
         super().__init__(style=defaulted(style, margin=0), **kwargs)
-        self.src = Property(src)
+        if (hasattr(src, 'save') or hasattr(src, 'savefig')):
+            self.src = Property('')
+            self.render(src)
+        else:
+            self.src = Property(src)
         self.click = Trigger()
 
     def clear(self):
@@ -1018,10 +1025,21 @@ class Image(Widget):
         buf.close()
 
     def widget_js(self):
+        # The click event has four properties that indicate the pixel
+        # location within the image that was clicked: imgx, imgy measure
+        # from the top-left.  imgyb measures from the bottom, and imgxr
+        # measures from the right.
         return minify('''
           model.on('src', (ev) => { element.src = ev.value; });
           element.addEventListener('click', (ev) => {
-            model.trigger('click');
+            var b=element.getBoundingClientRect();
+            console.log(ev.pageX, ev.pageY)
+            model.trigger('click', {
+              x: (ev.pageX-b.left)*element.naturalWidth/element.clientWidth,
+              y: (ev.pageY-b.top)*element.naturalHeight/element.clientHeight,
+              width: element.naturalWidth,
+              height: element.naturalHeight
+              });
           });
         ''')
 
@@ -1107,9 +1125,11 @@ if WIDGET_ENV is None:
 if WIDGET_ENV is None:
     try:
         from ipykernel.comm import Comm as jupyter_comm
-        COMM_MANAGER = get_ipython().kernel.comm_manager
+        from IPython import get_ipython as ipython_get_ipython
+        COMM_MANAGER = ipython_get_ipython().kernel.comm_manager
         WIDGET_ENV = 'jupyter'
     except Exception as e:
+        print(e)
         pass
 
 def no_env_warning():
