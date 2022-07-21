@@ -27,7 +27,7 @@ class PlotWidget(Img):
         import matplotlib, matplotlib.pyplot
         super().__init__()
         init_args = dict(kwargs)
-        self.render_args = dict()
+        self.render_args = dict(format='svg') # Looks better; use as default.
         if rc is None:
             rc = {}
         
