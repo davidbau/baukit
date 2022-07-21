@@ -484,6 +484,16 @@ class Event(object):
     def __repr__(self):
         return f'Event({self.value}, {self.name})'
 
+    @property
+    def location(self):
+        '''
+        Returns the location of the event, as translated by the
+        target object's event_location method, if any.
+        '''
+        if self.target and hasattr(self.target, 'event_location'):
+            return self.target.event_location(self)
+        return None
+
 
 entered_handler_stack = []
 
