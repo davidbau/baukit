@@ -30,11 +30,14 @@ class PlotWidget(Img):
         self.render_args = dict(format='svg') # Looks better; use as default.
         if rc is None:
             rc = {}
+        self.rc = rc
         
         all_names = []
+        has_fig_argument = False
         for i, (name, p) in enumerate(inspect.signature(redraw_rule).parameters.items()):
             if i == 0:
                 assert p.default == inspect._empty, 'First arg of redraw rule should be the figure'
+                has_fig_argument = True
             else:
                 if name in init_args:
                     default = init_args.pop(name)
@@ -53,7 +56,7 @@ class PlotWidget(Img):
             if default_arg not in init_args:
                 init_args[default_arg] = default_value
 
-        with matplotlib.pyplot.rc_context(rc=rc):
+        with matplotlib.pyplot.rc_context(rc=self.rc):
             old_backend = matplotlib.pyplot.get_backend()
             matplotlib.pyplot.switch_backend('agg')
             if 'mosaic' in init_args:
@@ -63,14 +66,22 @@ class PlotWidget(Img):
         matplotlib.pyplot.switch_backend(old_backend)
 
         def invoke_redraw():
-            with matplotlib.pyplot.rc_context(rc=rc):
-                args = [self.fig]
+            with matplotlib.pyplot.rc_context(rc=self.rc):
+                args = [self.fig] if has_fig_argument else []
                 for name in all_names:
                     args.append(getattr(self, name))
+                if not has_fig_argument:
+                    matplotlib.pyplot.figure(self.fig)
                 redraw_rule(*args)
                 self.render(self.fig, **self.render_args)
+                if not has_fig_argument:
+                    matplotlib.pyplot.close(self.fig)
         self.on(' '.join(all_names), invoke_redraw)
-        invoke_redraw()
+        self._redraw = invoke_redraw
+        self.redraw()
+
+    def redraw(self):
+        self._redraw()
 
     def event_location(self, event):
         '''
@@ -83,11 +94,15 @@ class PlotWidget(Img):
         py = event.value['y']
         # To convert from image to display coords, we need the bbox.
         # https://stackoverflow.com/questions/28692981
-        if self.render_args.get('bbox_inches', None) == 'tight':
-            bbox = self.fig.get_tightbbox(self.fig.canvas.get_renderer()).padded(0)
-            bbox.set_points(bbox.get_points() * self.fig.dpi)
-        else:
+        bbox_inches = self.render_args.get('bbox_inches', self.rc.get('savefig.bbox', None))
+        if bbox_inches is None:
             bbox = self.fig.bbox
+        else:
+            padding = self.render_args.get('pad_inches', self.rc.get('savefig.pad_inches', 0.1))
+            if bbox_inches == 'tight':
+                bbox_inches = self.fig.get_tightbbox(self.fig.canvas.get_renderer())
+            bbox = bbox_inches.padded(padding)
+            bbox.set_points(bbox.get_points() * self.fig.dpi)
         # Matplotlib display-coordinate location
         dx = (bbox.x1 - bbox.x0) * px / w + bbox.x0
         dy = (bbox.y1 - bbox.y0) * (h - py) / h + bbox.y0
