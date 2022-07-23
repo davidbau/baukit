@@ -293,7 +293,7 @@ class Widget(Model):
                     self._queue.append(args)
                     return
                 for comm in self._comms:
-                    comm.send(args)
+                    comm.send(jsoncopy(args))
             else:
                 no_env_warning()
 
@@ -316,7 +316,7 @@ class Widget(Model):
                 comm.send('ok')
                 if self._queue:
                     for args in self._queue:
-                        comm.send(args)
+                        comm.send(jsoncopy(args))
                     self._queue.clear()
                 if open_msg['content']['data']:
                     handle_comm(open_msg)
@@ -1071,11 +1071,40 @@ def baseclass_named(obj, *class_names):
              return True
     return False
 
+def is_json_atom(d):
+    return d is None or isinstance(d, (float, int, str, bool))
+
 class PermissiveEncoder(json.JSONEncoder):
     def default(self, obj):
         if baseclass_named(obj, 'numpy.ndarray', 'torch.Tensor'):
             return obj.tolist()
+        elif hasattr(obj, '_json_repr_'):
+            return obj._json_repr_()
+        elif not is_json_atom(obj) and not isinstance(obj, (list, tuple, dict)):
+            return None
         return json.JSONEncoder.default(self, obj)
+
+def jsoncopy(d, stack=None):
+    if is_json_atom(d):
+        return d
+    if stack is None:
+        stack = []
+    elif d in stack:
+        return None
+    stack.append(d)
+    try:
+        if isinstance(d, (list, tuple)):
+            return [jsoncopy(e, stack) for e in d]
+        elif isinstance(d, dict):
+            return {str(k): jsoncopy(v, stack) for k, v in d.items() if is_json_atom(k)}
+        elif hasattr(d, '_json_repr_'):
+            return d._json_repr_()
+        elif baseclass_named(d, 'numpy.ndarray', 'torch.Tensor'):
+            return jsoncopy(d.tolist(), stack) # Treat these as numbers
+        else:
+            return None  # Skip over non-serializable classes
+    finally:
+        stack.pop()
 
 def jsondump(d):
     return json.dumps(d, cls=PermissiveEncoder)
@@ -1083,7 +1112,6 @@ def jsondump(d):
 def minify(t):
     # TODO: plug in some more real minification.
     return re.sub(r'\n\s*', '\n', t)
-
 
 def style_attr(d):
     if not d:
