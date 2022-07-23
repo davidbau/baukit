@@ -1043,7 +1043,6 @@ class Img(Widget):
           model.on('src', (ev) => { element.src = ev.value; });
           element.addEventListener('click', (ev) => {
             var b=element.getBoundingClientRect();
-            console.log(ev.pageX, ev.pageY)
             model.trigger('click', {
               x: (ev.pageX-b.left)*element.naturalWidth/element.clientWidth,
               y: (ev.pageY-b.top)*element.naturalHeight/element.clientHeight,
