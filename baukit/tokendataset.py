@@ -47,7 +47,7 @@ def move_to(device, *containers):
             if isinstance(container, dict):
                 g = list(container.items())
             else:
-                g = enumerate(list)
+                g = enumerate(container)
             for i, v in g:
                 moved = move_to(device, v)
                 if moved is not None:
