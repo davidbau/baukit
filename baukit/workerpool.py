@@ -15,7 +15,7 @@ To use it,
    subclass type as the first (worker) argument, as well as any setup keyword
    arguments.  The WorkerPool will instantiate one of your workers in each
    worker process (passing in the setup arguments in those processes).
-   If debugging, the pool can have process_count=0 to force all the work
+   If debugging, the pool can have num_workers=0 to force all the work
    to be done immediately on the main thread; otherwise all the work
    will be passed to other processes.
 3. Whenever there is a new piece of work to distribute, call pool.add(*args).
@@ -44,12 +44,12 @@ class WorkerBase(Process):
     worker in a woker pool.
     '''
 
-    def __init__(self, i, process_count, queue, initargs):
-        if process_count > 0:
+    def __init__(self, i, num_workers, queue, initargs):
+        if num_workers > 0:
             # Make sure we ignore ctrl-C if we are not on main process.
             signal.signal(signal.SIGINT, signal.SIG_IGN)
         self.process_id = i
-        self.process_count = process_count
+        self.num_workers = num_workers
         self.queue = queue
         super(WorkerBase, self).__init__()
         self.setup(**initargs)
@@ -90,12 +90,12 @@ class WorkerPool(object):
     and call pool.join() to wait for all the workers to complete.
     '''
 
-    def __init__(self, worker=WorkerBase, process_count=None, **initargs):
+    def __init__(self, worker=WorkerBase, num_workers=None, **initargs):
         global active_pools
-        if process_count is None:
-            process_count = cpu_count()
-        if process_count == 0:
-            # zero process_count uses only main process, for debugging.
+        if num_workers is None:
+            num_workers = cpu_count()
+        if num_workers == 0:
+            # zero num_workers uses only main process, for debugging.
             self.queue = None
             self.processes = None
             self.worker = worker(None, 0, None, initargs)
@@ -104,10 +104,10 @@ class WorkerPool(object):
         # this up to be inherited by child processes before forking.
         original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
         active_pools[id(self)] = self
-        self.queue = Queue(maxsize=(process_count * 3))
+        self.queue = Queue(maxsize=(num_workers * 3))
         self.processes = None   # Initialize before trying to construct workers
-        self.processes = [worker(i, process_count, self.queue, initargs)
-                          for i in range(process_count)]
+        self.processes = [worker(i, num_workers, self.queue, initargs)
+                          for i in range(num_workers)]
         for p in self.processes:
             p.start()
         # The main process should handle ctrl-C.  Restore this now.
