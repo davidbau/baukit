@@ -17,5 +17,6 @@ from .runningstats import Reservoir, History, CombinedStat
 from .runningstats import tally
 from . import show
 from .workerpool import WorkerBase, WorkerPool
+from .imgsave import save_image_set
 from .tokendataset import TokenizedDataset, move_to, length_collation
 from .tokendataset import make_padded_batch, flatten_masked_batch
