@@ -13,6 +13,8 @@ def as_tensor(data, source='zc', target='zc'):
 
 
 def as_image(data, source='zc', target='byte'):
+    if len(data.shape) == 4:
+        return [as_image(d, source, target) for d in data]
     assert len(data.shape) == 3
     renorm = renormalizer(source=source, target=target)
     return PIL.Image.fromarray(renorm(data).
@@ -33,6 +35,8 @@ def as_url(data, source='zc', size=None):
 
 
 def from_image(im, target='zc', size=None):
+    if isinstance(im, list):
+        return torch.stack([from_image(one, target, size) for one in im])
     if im.format != 'RGB':
         im = im.convert('RGB')
     if size is not None:
@@ -80,15 +84,21 @@ def renormalizer(source='zc', target='zc'):
                         tobyte=(target == 'byte'))
 
 
-# The three commonly-seen image normalization schemes.
+# Several commonly-seen image normalization schemes.
 OFFSET_SCALE = dict(
+    # pytorch default [0, 1]
     pt=([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]),
+    # zero-centered [-1, 1]
     zc=([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
+    # zero-mean, unit-variance over empirical ImageNet sample
     imagenet=([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    # zero-mean, 255 range over ImageNet sample
     imagenet_meanonly=([0.485, 0.456, 0.406],
                        [1.0 / 255, 1.0 / 255, 1.0 / 255]),
+    # zero-mean, 255 range over Places sample
     places_meanonly=([0.475, 0.441, 0.408],
                      [1.0 / 255, 1.0 / 255, 1.0 / 255]),
+    # byte encoding [0, 255] as in common image file formats
     byte=([0.0, 0.0, 0.0], [1.0 / 255, 1.0 / 255, 1.0 / 255]))
 
 NORMALIZER = {k: transforms.Normalize(*OFFSET_SCALE[k]) for k in OFFSET_SCALE}
