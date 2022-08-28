@@ -295,5 +295,3 @@ class ndarray(numpy.ndarray):
     be attached as an attribute.
     '''
     pass
-
-
