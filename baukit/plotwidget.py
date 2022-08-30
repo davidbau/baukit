@@ -35,8 +35,8 @@ class PlotWidget(Img):
         all_names = []
         has_fig_argument = False
         for i, (name, p) in enumerate(inspect.signature(redraw_rule).parameters.items()):
-            if i == 0:
-                assert p.default == inspect._empty, 'First arg of redraw rule should be the figure'
+            if i == 0 and p.default == inspect._empty:
+                # assert p.default == inspect._empty, 'First arg of redraw rule should be the figure'
                 has_fig_argument = True
             else:
                 if name in init_args:
