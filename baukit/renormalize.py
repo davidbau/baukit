@@ -92,6 +92,10 @@ OFFSET_SCALE = dict(
     zc=([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
     # zero-mean, unit-variance over empirical ImageNet sample
     imagenet=([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    # clip normalization; see
+    # https://github.com/openai/CLIP/blob/c5478aac7b9e007a2659d36b57ebe148849e542a/clip/clip.py#L85
+    clip=([0.48145466, 0.4578275, 0.40821073],
+          [0.26862954, 0.26130258, 0.27577711]),
     # zero-mean, 255 range over ImageNet sample
     imagenet_meanonly=([0.485, 0.456, 0.406],
                        [1.0 / 255, 1.0 / 255, 1.0 / 255]),
