@@ -1,6 +1,6 @@
 from .labwidget import Model, Widget, Trigger, Property, Event
 from .labwidget import Button, Label, Textbox, Numberbox, Range, ColorPicker
-from .labwidget import Choice, Menu, Datalist, Div, ClickDiv, Img
+from .labwidget import Checkbox, Choice, Menu, Datalist, Div, ClickDiv, Img
 from .labwidget import Textarea
 from .paintwidget import PaintWidget
 from .plotwidget import PlotWidget

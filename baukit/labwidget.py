@@ -783,7 +783,7 @@ class Choice(Widget):
             });
             element.innerHTML = lines.join();
           }
-          model.on('choices horizontal', render);
+          model.on('choices', render);
           model.on('value', (ev) => {
             [...element.querySelectorAll('input')].forEach((e) => {
               e.checked = (e.value == ev.value);
@@ -804,6 +804,52 @@ class Choice(Widget):
                         name='choice', type='radio', value=value), out=out)
                     with show.enter('div', out=out):
                         out.append(html.escape(str(value)))
+        return ''.join(out)
+
+class Checkbox(Widget):
+    """
+    A True/False checkbox with a label.
+    """
+
+    def __init__(self, label=None, value=False,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.label = Property(label)
+        self.value = Property(value)
+
+    def widget_js(self):
+        # Note that the 'input' event would enable during-drag feedback,
+        # but this is pretty slow on google colab.
+        return minify('''
+          function esc(unsafe) {
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                   .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+          }
+          function render() {
+            element.innerHTML = '<label><input name="check" type="checkbox"' +
+                 (!!model.get('value') ? ' checked' : '') + '">' +
+                 esc(model.get('label') || '') + '</label>'
+          }
+          model.on('label', render);
+          model.on('value', (ev) => {
+            element.check.checked = (!!ev.value);
+          });
+          element.addEventListener('change', (e) => {
+            model.set('value', element.check.checked);
+          });
+        ''')
+
+    def widget_html(self):
+        out = []
+        with show.enter('form', self.std_attrs(),
+                show.style(whiteSpace='nowrap'), out=out):
+            with show.enter('label', out=out):
+                show.emit(show.PLAIN('input',
+                    show.style(margin='auto'),
+                    (show.attr(checked=None) if self.value else None),
+                    name='check', type='checkbox'), out=out)
+                with show.enter('div', out=out):
+                    out.append(html.escape(str(self.label)))
         return ''.join(out)
 
 class Menu(Widget):
