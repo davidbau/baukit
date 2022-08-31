@@ -1212,7 +1212,7 @@ if WIDGET_ENV is None:
         COMM_MANAGER = ipython_get_ipython().kernel.comm_manager
         WIDGET_ENV = 'jupyter'
     except Exception as e:
-        print(e)
+        # print(e)
         pass
 
 def no_env_warning():
