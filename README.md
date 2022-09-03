@@ -94,7 +94,7 @@ top_values, top_indexes = cs.tk.topk(10)
 
 ## Improved basic dataset objects
 
-`ParallelImageFolder` is faster and provides more features than
+`ImageFolderSet` is faster and provides more features than
 pytorch `ImageFolder` including the ability to gather multiple
 streams of parallel data tensors (such as segmentations and images).
 
