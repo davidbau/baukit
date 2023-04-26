@@ -28,6 +28,8 @@ with Trace(net, 'layer.name') as ret:
     representation = ret.output
 ```
 
+Read the [nethook Trace source code](https://github.com/davidbau/baukit/blob/main/baukit/nethook.py) for more information.
+
 ## Widget library
 
 `show` is a feature-rich alternative to Jupyter notebook `display`;
@@ -70,6 +72,8 @@ execute the code `plot.freq = 5.0`, the plot will update live, in-place,
 to show the new curve, and the freq slider will also move to 5.  And
 of course, dragging the slider will also change the values live.
 
+The [labwidget source code](https://github.com/davidbau/baukit/blob/main/baukit/labwidget.py) has much more detail.
+
 ## Online statistics library
 
 `Covariance`, `Mean`, `Quantile`, `TopK`, and other data summarization
@@ -91,6 +95,8 @@ cs.to_('cpu')
 median = cs.qc.quantile(0.5)
 top_values, top_indexes = cs.tk.topk(10)
 ```
+
+The [runningstats source code](https://github.com/davidbau/baukit/blob/main/baukit/runningstats.py) shows other things you can do.
 
 ## Improved basic dataset objects
 
