@@ -44,6 +44,8 @@ from baukit import show
 show([[show.style(color=c), c] for c in ['red', 'green', 'blue']])
 ```
 
+There is a [notebook here](https://github.com/davidbau/baukit/blob/main/notebooks/using_show_and_widgets.ipynb) that shows off ways to use `show()`.
+
 `show` works with a set of `Widget` subclasses such as, `Textbox`,
 `Numberbox`, `Range`, `Menu`, `PlotWidget`, `PaintWidget` that provide
 data-bound reactive objects for quickly making interactive
