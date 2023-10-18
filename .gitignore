@@ -4,3 +4,5 @@ __pycache__
 .idea
 .__*
 .*.swp
+.mypy_cache/
+.vscode/

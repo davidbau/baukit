@@ -45,6 +45,10 @@ class Trace(contextlib.AbstractContextManager):
             for the original output and the layer name.
         stop=True - throws a StopForward exception after the layer
             is run, which allows running just a portion of a model.
+        input_capture_all_keys=False - only used when retain_input is True
+            will return all key-value pairs in **kwargs of the forward
+        input_key=None - only check when retain_input is True AND args of the forward is empty
+            will return the value of the `input_key` in **kwargs of the forward
     """
 
     def __init__(
@@ -58,42 +62,84 @@ class Trace(contextlib.AbstractContextManager):
         retain_grad=False,
         edit_output=None,
         stop=False,
+        input_capture_all_keys=False,  # only used when retain_input is True
+        input_key=None,  # only used when retain_input is True
     ):
         """
         Method to replace a forward method with a closure that
         intercepts the call, and tracks the hook so that it can be reverted.
         """
         retainer = self
+
+        def retain_hook(forward_fn):
+            def wrap_forward(*args, **kwargs):
+                # print("-----------------------------------------------")
+                # print(*args)
+                # for k in kwargs:
+                #     print(k, "=>", kwargs[k])
+                # print("-----------------------------------------------")
+
+                if retain_input:
+                    if input_capture_all_keys:
+                        inputs = {
+                            key: recursive_copy(
+                                value, clone=clone, detach=detach, retain_grad=False
+                            )
+                            for key, value in kwargs.items()
+                        }
+                        retainer.input = inputs
+                    else:
+                        if len(args) != 0:
+                            # the main input is often the first argument
+                            # TODO: is this **always** true?
+                            inputs = args[0] if len(args) == 1 else args
+                        else:
+                            assert (
+                                input_key is not None
+                            ), "all arguments are passed as kwargs. Please specify `input_key`"
+                            assert (
+                                input_key in kwargs
+                            ), f"input_key {input_key} not found in kwargs"
+                            inputs = kwargs[input_key]
+
+                        retainer.input = recursive_copy(
+                            inputs,
+                            clone=clone,
+                            detach=detach,
+                            retain_grad=False,  # retain_grad applies to output only.
+                        )
+
+                # ----------------------------------
+                # call the actual forward function
+                output = forward_fn(*args, **kwargs)
+                # ----------------------------------
+
+                if edit_output:
+                    output = invoke_with_optional_args(
+                        edit_output, output=output, layer=self.layer, inputs=inputs
+                    )
+
+                if retain_output:
+                    retainer.output = recursive_copy(
+                        output, clone=clone, detach=detach, retain_grad=retain_grad
+                    )
+                    # When retain_grad is set, also insert a trivial
+                    # copy operation.  That allows in-place operations
+                    # to follow without error.
+                    if retain_grad:
+                        output = recursive_copy(
+                            retainer.output, clone=True, detach=False
+                        )
+                return output
+
+            return wrap_forward
+
         self.layer = layer
         if layer is not None:
-            module = get_module(module, layer)
+            self.module = get_module(module, layer)
+            self.hook = self.module.forward
+            self.module.forward = retain_hook(self.module.forward)
 
-        def retain_hook(m, inputs, output):
-            if edit_output:
-                output = invoke_with_optional_args(
-                    edit_output, output=output, layer=self.layer, inputs=inputs
-                )
-            if retain_input:
-                retainer.input = recursive_copy(
-                    inputs[0] if len(inputs) == 1 else inputs,
-                    clone=clone,
-                    detach=detach,
-                    retain_grad=False,
-                )  # retain_grad applies to output only.
-            if retain_output:
-                retainer.output = recursive_copy(
-                    output, clone=clone, detach=detach, retain_grad=retain_grad
-                )
-                # When retain_grad is set, also insert a trivial
-                # copy operation.  That allows in-place operations
-                # to follow without error.
-                if retain_grad:
-                    output = recursive_copy(retainer.output, clone=True, detach=False)
-            if stop:
-                raise StopForward()
-            return output
-
-        self.registered_hook = module.register_forward_hook(retain_hook)
         self.stop = stop
 
     def __enter__(self):
@@ -105,7 +151,9 @@ class Trace(contextlib.AbstractContextManager):
             return True
 
     def close(self):
-        self.registered_hook.remove()
+        if self.layer is not None:
+            # removing hook => restore the original forward function
+            self.module.forward = self.hook
 
 
 class TraceDict(OrderedDict, contextlib.AbstractContextManager):
@@ -137,6 +185,8 @@ class TraceDict(OrderedDict, contextlib.AbstractContextManager):
         retain_grad=False,
         edit_output=None,
         stop=False,
+        input_capture_all_keys=False,  # only used when retain_input is True
+        input_key=None,  # only used when retain_input is True
     ):
         self.stop = stop
 
@@ -171,6 +221,8 @@ class TraceDict(OrderedDict, contextlib.AbstractContextManager):
                 retain_grad=optional_dict(retain_grad),
                 edit_output=optional_dict(edit_output),
                 stop=stop and is_last,
+                input_capture_all_keys=optional_dict(input_capture_all_keys),
+                input_key=optional_dict(input_key),
             )
 
     def __enter__(self):
