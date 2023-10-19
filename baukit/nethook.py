@@ -45,10 +45,6 @@ class Trace(contextlib.AbstractContextManager):
             for the original output and the layer name.
         stop=True - throws a StopForward exception after the layer
             is run, which allows running just a portion of a model.
-        input_capture_all_keys=False - only used when retain_input is True
-            will return all key-value pairs in **kwargs of the forward
-        input_key=None - only check when retain_input is True AND args of the forward is empty
-            will return the value of the `input_key` in **kwargs of the forward
     """
 
     def __init__(
@@ -62,8 +58,6 @@ class Trace(contextlib.AbstractContextManager):
         retain_grad=False,
         edit_output=None,
         stop=False,
-        input_capture_all_keys=False,  # only used when retain_input is True
-        input_key=None,  # only used when retain_input is True
     ):
         """
         Method to replace a forward method with a closure that
@@ -80,34 +74,18 @@ class Trace(contextlib.AbstractContextManager):
                 # print("-----------------------------------------------")
 
                 if retain_input:
-                    if input_capture_all_keys:
-                        inputs = {
-                            key: recursive_copy(
-                                value, clone=clone, detach=detach, retain_grad=False
-                            )
-                            for key, value in kwargs.items()
-                        }
-                        retainer.input = inputs
-                    else:
-                        if len(args) != 0:
-                            # the main input is often the first argument
-                            # TODO: is this **always** true?
-                            inputs = args[0] if len(args) == 1 else args
-                        else:
-                            assert (
-                                input_key is not None
-                            ), "all arguments are passed as kwargs. Please specify `input_key`"
-                            assert (
-                                input_key in kwargs
-                            ), f"input_key {input_key} not found in kwargs"
-                            inputs = kwargs[input_key]
-
-                        retainer.input = recursive_copy(
-                            inputs,
-                            clone=clone,
-                            detach=detach,
-                            retain_grad=False,  # retain_grad applies to output only.
-                        )
+                    retainer.input = recursive_copy(
+                        args[0] if len(args) == 1 else args,
+                        clone=clone,
+                        detach=detach,
+                        retain_grad=False,  # retain_grad applies to output only.
+                    )
+                    retainer.input_kw = recursive_copy(
+                        kwargs,
+                        clone=clone,
+                        detach=detach,
+                        retain_grad=False,  # retain_grad applies to output only.
+                    )
 
                 # ----------------------------------
                 # call the actual forward function
@@ -116,7 +94,11 @@ class Trace(contextlib.AbstractContextManager):
 
                 if edit_output:
                     output = invoke_with_optional_args(
-                        edit_output, output=output, layer=self.layer, inputs=inputs
+                        edit_output,
+                        output=output,
+                        layer=self.layer,
+                        inputs=args,
+                        inputs_kw=kwargs,
                     )
 
                 if retain_output:
@@ -185,8 +167,6 @@ class TraceDict(OrderedDict, contextlib.AbstractContextManager):
         retain_grad=False,
         edit_output=None,
         stop=False,
-        input_capture_all_keys=False,  # only used when retain_input is True
-        input_key=None,  # only used when retain_input is True
     ):
         self.stop = stop
 
@@ -221,8 +201,6 @@ class TraceDict(OrderedDict, contextlib.AbstractContextManager):
                 retain_grad=optional_dict(retain_grad),
                 edit_output=optional_dict(edit_output),
                 stop=stop and is_last,
-                input_capture_all_keys=optional_dict(input_capture_all_keys),
-                input_key=optional_dict(input_key),
             )
 
     def __enter__(self):
