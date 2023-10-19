@@ -67,12 +67,6 @@ class Trace(contextlib.AbstractContextManager):
 
         def retain_hook(forward_fn):
             def wrap_forward(*args, **kwargs):
-                # print("-----------------------------------------------")
-                # print(*args)
-                # for k in kwargs:
-                #     print(k, "=>", kwargs[k])
-                # print("-----------------------------------------------")
-
                 if retain_input:
                     retainer.input = recursive_copy(
                         args[0] if len(args) == 1 else args,
