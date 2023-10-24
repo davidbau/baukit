@@ -106,6 +106,9 @@ class Trace(contextlib.AbstractContextManager):
                         output = recursive_copy(
                             retainer.output, clone=True, detach=False
                         )
+                if stop:
+                    raise StopForward()
+
                 return output
 
             return wrap_forward
