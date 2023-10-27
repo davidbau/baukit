@@ -140,6 +140,26 @@ class TestTrace(unittest.TestCase):
         assert "output" not in locals(), "Error in early exit"
         print(" PASSED: early exit successful")
 
+    def test_6_test_retain_grad(self):
+        embedding = torch.randn(15, self.model.input_dim).to(
+            device=self.model.device, dtype=self.model.dtype
+        )
+        with baukit.Trace(
+            self.model, layer="layers.block_1", retain_grad=True
+        ) as trace:
+            output = self.model(embedding)
+
+        assert (
+            trace.output.grad is None
+        ), "`trace.output.grad` should be empty before calling backward()"
+        ground_truth = torch.randn_like(trace.output)
+        loss = torch.nn.MSELoss()(output, ground_truth)
+        loss.backward()
+        assert (
+            trace.output.grad is not None
+        ), "`trace.output.grad` should not be empty after calling backward()"
+        print(" PASSED: retain_grad successful")
+
 
 if __name__ == "__main__":
     unittest.main()
