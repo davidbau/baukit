@@ -124,6 +124,7 @@ class TestTrace(unittest.TestCase):
 
         print(" PASSED: intervention successful")
 
+    @torch.inference_mode()
     def test_5_early_exit(self):
         embedding = torch.randn(15, self.model.input_dim).to(
             device=self.model.device, dtype=self.model.dtype
