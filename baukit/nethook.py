@@ -64,36 +64,61 @@ class Trace(contextlib.AbstractContextManager):
         intercepts the call, and tracks the hook so that it can be reverted.
         """
         retainer = self
+
+        def retain_hook(forward_fn):
+            def wrap_forward(*args, **kwargs):
+                if retain_input:
+                    retainer.input = recursive_copy(
+                        args[0] if len(args) == 1 else args,
+                        clone=clone,
+                        detach=detach,
+                        retain_grad=False,  # retain_grad applies to output only.
+                    )
+                    retainer.input_kw = recursive_copy(
+                        kwargs,
+                        clone=clone,
+                        detach=detach,
+                        retain_grad=False,  # retain_grad applies to output only.
+                    )
+
+                # ----------------------------------
+                # call the actual forward function
+                output = forward_fn(*args, **kwargs)
+                # ----------------------------------
+
+                if edit_output:
+                    output = invoke_with_optional_args(
+                        edit_output,
+                        output=output,
+                        layer=self.layer,
+                        inputs=args,
+                        inputs_kw=kwargs,
+                    )
+
+                if retain_output:
+                    retainer.output = recursive_copy(
+                        output, clone=clone, detach=detach, retain_grad=retain_grad
+                    )
+                    # When retain_grad is set, also insert a trivial
+                    # copy operation.  That allows in-place operations
+                    # to follow without error.
+                    if retain_grad:
+                        output = recursive_copy(
+                            retainer.output, clone=True, detach=False
+                        )
+                if stop:
+                    raise StopForward()
+
+                return output
+
+            return wrap_forward
+
         self.layer = layer
         if layer is not None:
-            module = get_module(module, layer)
+            self.module = get_module(module, layer)
+            self.hook = self.module.forward
+            self.module.forward = retain_hook(self.module.forward)
 
-        def retain_hook(m, inputs, output):
-            if edit_output:
-                output = invoke_with_optional_args(
-                    edit_output, output=output, layer=self.layer, inputs=inputs
-                )
-            if retain_input:
-                retainer.input = recursive_copy(
-                    inputs[0] if len(inputs) == 1 else inputs,
-                    clone=clone,
-                    detach=detach,
-                    retain_grad=False,
-                )  # retain_grad applies to output only.
-            if retain_output:
-                retainer.output = recursive_copy(
-                    output, clone=clone, detach=detach, retain_grad=retain_grad
-                )
-                # When retain_grad is set, also insert a trivial
-                # copy operation.  That allows in-place operations
-                # to follow without error.
-                if retain_grad:
-                    output = recursive_copy(retainer.output, clone=True, detach=False)
-            if stop:
-                raise StopForward()
-            return output
-
-        self.registered_hook = module.register_forward_hook(retain_hook)
         self.stop = stop
 
     def __enter__(self):
@@ -105,7 +130,9 @@ class Trace(contextlib.AbstractContextManager):
             return True
 
     def close(self):
-        self.registered_hook.remove()
+        if self.layer is not None:
+            # removing hook => restore the original forward function
+            self.module.forward = self.hook
 
 
 class TraceDict(OrderedDict, contextlib.AbstractContextManager):
